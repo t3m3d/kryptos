@@ -33,14 +33,22 @@ build_gcc_pass1() {
     tar -xf "$(find_src mpc-)";  mv -v mpc-*  mpc
     [ "$ARCH" = x86_64 ] && sed -e '/m64=/s/lib64/lib/' -i.orig gcc/config/i386/t-linux64
     mkdir -v build && cd build
+    # Host gcc >=16 defaults to a C++ std where u8"" literals are char8_t, which
+    # breaks gcc-14.2's bundled libcody (S2C/std::string ctors expect char). Pin the
+    # HOST C++ compiler to gnu++17 so u8"" stays char[]. Only host-side bits use CXX;
+    # the cross compiler being built is unaffected. (L's box: host gcc 16.1.)
     # VERIFY: --with-glibc-version must match the book's glibc.
-    ../configure --target="$LFS_TGT" --prefix="$LFS/tools" --with-glibc-version=2.40 \
+    ../configure CXX="g++ -std=gnu++17" CXX_FOR_BUILD="g++ -std=gnu++17" \
+        --target="$LFS_TGT" --prefix="$LFS/tools" --with-glibc-version=2.40 \
         --with-sysroot="$LFS" --with-newlib --without-headers \
         --enable-default-pie --enable-default-ssp \
         --disable-nls --disable-shared --disable-multilib --disable-threads \
         --disable-libatomic --disable-libgomp --disable-libquadmath \
         --disable-libssp --disable-libvtv --disable-libstdcxx --enable-languages=c,c++
-    make && make install
+    # Separate statements (NOT `make && make install`) so set -e in step() aborts on
+    # a make failure instead of the trailing cd/rm returning 0 and masking it.
+    make
+    make install
     # produce the full internal limits.h (book step)
     cd "$d"
     cat gcc/limitx.h gcc/glimits.h gcc/limity.h > \
