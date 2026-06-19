@@ -17,7 +17,7 @@ echo
 exec qemu-system-aarch64 \
     -M virt -cpu host -accel hvf -smp 4 -m 2048 \
     -kernel "$KERNEL" \
-    -append "root=/dev/vda rw console=ttyAMA0 init=/sbin/init" \
+    -append "root=/dev/vda rw console=ttyAMA0 init=/sbin/init net.ifnames=0" \
     -drive file="$ROOTFS",if=virtio,format=raw \
     -netdev user,id=n0 -device virtio-net-pci,netdev=n0 \
     -nographic

@@ -235,6 +235,7 @@ cmd_search() {
         n=$(basename "$d"); [ -f "$d/recipe.ks" ] || continue
         printf '%s' "$n" | grep -qi "$1" && printf '%-20s %s\n' "$n" "$(recipe_version "$n" 2>/dev/null||echo '?')"
     done
+    return 0
 }
 cmd_list() {
     [ -d "$KIX_DB" ] || { ok "nothing installed"; return; }
@@ -256,6 +257,7 @@ cmd_qlist()   { [ $# -ge 1 ] || die "usage: kix -Ql <pkg>"; is_installed "$1" ||
 cmd_qsearch() {
     local d n; for d in "$KIX_DB"/*/; do [ -d "$d" ] || continue; n=$(basename "$d")
         printf '%s' "$n" | grep -qi "${1:-}" && printf '%-20s %s\n' "$n" "$(cat "$d/version")"; done
+    return 0
 }
 
 usage() {
