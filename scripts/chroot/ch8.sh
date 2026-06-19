@@ -265,8 +265,15 @@ b_libffi() { into libffi-; ./configure --prefix=/usr --disable-static --disable-
 # --- 8.49..8.54 python stack ---
 b_python() {
     into Python-
-    ./configure --prefix=/usr --enable-shared --with-system-expat --without-ensurepip
+    # NOTE: ch8 (final) Python must KEEP ensurepip — pip is required by the
+    # flit-core/wheel/setuptools/meson/MarkupSafe/Jinja2 steps below. Only the
+    # ch7 temp Python uses --without-ensurepip. (--enable-optimizations dropped
+    # for v0 build speed; not needed for a bootable system.)
+    ./configure --prefix=/usr --enable-shared --with-system-expat
     make; make install
+    # make install did not always materialise the pip3 console script here;
+    # bootstrap it explicitly from the bundled wheel so the steps below work.
+    python3 -m ensurepip --default-pip
     cat > /etc/pip.conf <<"EOF"
 [global]
 root-user-action = ignore
@@ -275,8 +282,8 @@ EOF
 }
 pip_install() { # $1=src-prefix : build a wheel offline and install it
     into "$1"
-    pip3 wheel -w dist --no-cache-dir --no-build-isolation --no-deps "$PWD"
-    pip3 install --no-index --find-links dist --no-user "$2"
+    python3 -m pip wheel -w dist --no-cache-dir --no-build-isolation --no-deps "$PWD"
+    python3 -m pip install --no-index --find-links dist --no-user "$2"
 }
 b_flitcore()  { pip_install flit_core- flit_core; }
 b_wheel()     { pip_install wheel- wheel; }
@@ -288,8 +295,8 @@ b_ninja() {
 }
 b_meson() {
     into meson-
-    pip3 wheel -w dist --no-cache-dir --no-build-isolation --no-deps "$PWD"
-    pip3 install --no-index --find-links dist meson
+    python3 -m pip wheel -w dist --no-cache-dir --no-build-isolation --no-deps "$PWD"
+    python3 -m pip install --no-index --find-links dist meson
 }
 
 # --- 8.55..8.62 core userland ---

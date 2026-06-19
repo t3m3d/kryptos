@@ -21,6 +21,15 @@ b_utillinux() {
     make; make install
 }
 
+# --- 8.x pkgconf (provides pkg-config; meson/udev need it to find libcap) ---
+b_pkgconf() {
+    into pkgconf-
+    ./configure --prefix=/usr --disable-static --docdir=/usr/share/doc/pkgconf-2.3.0
+    make; make install
+    ln -sfv pkgconf   /usr/bin/pkg-config
+    ln -sfv pkgconf.1 /usr/share/man/man1/pkg-config.1
+}
+
 # --- 8.x udev (built from the systemd source, sysvinit method) ---
 b_udev() {
     into systemd-
@@ -83,6 +92,7 @@ b_sysvinit() {
 
 msg "ch8 init tail: util-linux final, udev, sysvinit"
 step util-linux-final b_utillinux
+step pkgconf          b_pkgconf
 step udev             b_udev
 step sysvinit         b_sysvinit
 msg "ch8 init tail done — final system COMPLETE. Next: ch9 config + ch10 kernel/grub."
