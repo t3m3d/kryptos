@@ -16,6 +16,7 @@ rsync -aHAX --numeric-ids \
     --exclude '/sources' --exclude '/tools' --exclude '/build-tmp' \
     --exclude '/build-logs' --exclude '/build-state' \
     --exclude '/root/kryptos' --exclude '/tmp/*' \
+    --exclude '/proc/*' --exclude '/sys/*' --exclude '/dev/*' --exclude '/run/*' \
     "$LFS"/ "$STAGE"/
 
 # kernel modules already under /lib/modules in the tree; make sure the virtual

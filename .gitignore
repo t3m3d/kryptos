@@ -5,3 +5,4 @@ build-state/
 *.log
 *.img
 .DS_Store
+dist/
