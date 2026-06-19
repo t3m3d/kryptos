@@ -1,0 +1,7 @@
+# never commit the build tree, sources, or logs (they live on the Linux host)
+sources/
+build-logs/
+build-state/
+*.log
+*.img
+.DS_Store

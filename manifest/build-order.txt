@@ -1,0 +1,73 @@
+# KryptOS / LFS build order — the roadmap.
+# Pin exact versions to the LFS_VERSION book; this is the SEQUENCE (it rarely
+# changes between releases). We write + run a recipe per line, chapter by chapter.
+# Order matters: each stage depends on the last.
+
+## Stage 1 — cross toolchain (LFS ch5)  [built as user 'lfs', PATH=$LFS/tools]
+binutils      # pass 1
+gcc           # pass 1
+linux         # API headers
+glibc
+libstdc++     # from gcc sources, pass 1
+
+## Stage 2 — temporary tools (LFS ch6)  [still as 'lfs']
+m4
+ncurses
+bash
+coreutils
+diffutils
+file
+findutils
+gawk
+grep
+gzip
+make
+patch
+sed
+tar
+xz
+binutils      # pass 2
+gcc           # pass 2
+
+## Stage 3 — enter chroot + temp tools (LFS ch7)  [as root, in chroot]
+# chroot setup: virtual fs (/dev /proc /sys /run), dirs, /etc/passwd, mount
+gettext
+bison
+perl
+Python
+texinfo
+util-linux
+
+## Stage 4 — final system (LFS ch8)  [in chroot, the ~real packages]
+man-pages
+iana-etc
+glibc          # final
+zlib
+bzip2
+xz
+zstd
+file
+readline
+m4
+bc
+flex
+tcl binutils gmp mpfr mpc attr acl libcap libxcrypt shadow
+gcc            # final  (the long pole — 30-60+ min)
+ncurses sed psmisc gettext bison grep bash libtool gdbm gperf expat
+inetutils less perl XML::Parser intltool autoconf automake openssl kmod
+libelf libffi Python flit-core wheel setuptools ninja meson coreutils
+check diffutils gawk findutils groff grub gzip iproute2 kbd libpipeline
+make patch tar texinfo vim markupsafe jinja2 systemd-or-sysvinit dbus
+procps-ng util-linux e2fsprogs sysklogd sysvinit
+# (exact set/versions follow the book; sysvinit path chosen for v0)
+
+## Stage 5 — system configuration (LFS ch9)
+# /etc/fstab, hostname=kryptos, /etc/os-release (NAME="KryptOS"), network,
+# console, locale, /etc/inittab (sysvinit), bootscripts.
+
+## Stage 6 — kernel + bootloader (LFS ch10)
+linux          # configure + build the kernel
+grub           # install + grub.cfg with a "KryptOS" menu entry
+
+## Stage 7 — reboot
+# exit chroot, unmount, reboot → login prompt. v0 done.

@@ -1,0 +1,59 @@
+# KryptOS
+
+A Linux distribution built from scratch — the `krypt-` family's own OS. Boots to a
+login shell, built from the toolchain up (Linux From Scratch), branded KryptOS.
+
+> **Goal of v0:** a **bootable base system** — cross-toolchain → ~80 core
+> packages → kernel → GRUB → it logs in. Beyond-base (networking stack, desktop,
+> Krypton userland) comes later.
+
+## Important: where this runs
+
+The build runs on a **Linux build host** — Agent L's ParrotOS box or a Linux VM —
+**not on macOS**. macOS can't compile a Linux toolchain. Agent M writes/maintains
+these scripts and debugs failures; L (or Brian) runs them on Linux.
+
+## Approach
+
+This repo is **build automation around the LFS book**, not a fork of it. It does
+the parts that are safe to standardize (host check, source fetch + md5 verify,
+env, logging, resume) and tracks the chapter-by-chapter build order. Each
+chapter's package recipes are filled in and run together — pinned to the exact
+LFS book version so versions/patches/md5s line up.
+
+Pick your LFS version in `env.sh` (`LFS_VERSION`) and follow that book.
+
+## Quick start (on the Linux host)
+
+```sh
+source env.sh                 # config: $LFS mount, version, target triple, flags
+./scripts/00-host-check.sh    # verify the host has the required build tools
+#   ... prepare a disk/partition: see scripts/01-prepare-disk.md (DESTRUCTIVE)
+sudo mkdir -pv "$LFS" && sudo mount <your-lfs-partition> "$LFS"
+./scripts/02-fetch-sources.sh # download + md5-verify all sources
+#   ... then build chapter by chapter (see manifest/build-order.txt + PROGRESS.md)
+```
+
+## Layout
+
+```
+env.sh                     all config (source it before anything)
+lib/build.sh               helper fns: logging, extract, build-in-dir, checkpoint/resume
+scripts/00-host-check.sh   host build-tool + version check
+scripts/01-prepare-disk.md GUIDED disk prep (manual — it's destructive)
+scripts/02-fetch-sources.sh fetch wget-list + md5sums, verify
+manifest/build-order.txt   the full package build order (the roadmap)
+PROGRESS.md                checklist — tick chapters as they pass
+```
+
+## Status
+
+Scaffold only. Toolchain/system recipes are built + run with M live, chapter by
+chapter, on the Linux host. Nothing here is destructive without you setting a
+device + confirming.
+
+## Branding
+
+KryptOS — pairs with Krypton, KryptScript, kryptonbytes, yubiKrypt. Codename baked
+into `env.sh` (`DISTRO_NAME`); shows up in `/etc/os-release`, the hostname, and
+the boot entry when we get there.
