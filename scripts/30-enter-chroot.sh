@@ -15,6 +15,7 @@ for d in usr lib var etc bin sbin tools lib64; do
 done
 
 echo "[chroot] 7.3 mount virtual kernel filesystems"
+mkdir -pv "$LFS"/{dev,proc,sys,run}
 mountpoint -q "$LFS/dev"     || mount --bind /dev "$LFS/dev"
 mkdir -p "$LFS/dev/pts"
 mountpoint -q "$LFS/dev/pts" || mount -t devpts devpts -o gid=5,mode=0620 "$LFS/dev/pts"
