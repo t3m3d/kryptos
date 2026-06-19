@@ -41,6 +41,10 @@ extract_to() {
         | sed "s|^|$work/|"
 }
 
+# into <pkg-prefix>  → fresh-extract the package and cd into it (scratch dir).
+B_WORK="${B_WORK:-/tmp/kbuild}"
+into() { rm -rf "$B_WORK"; local d; d=$(extract_to "$B_WORK" "$(find_src "$1")"); cd "$d"; }
+
 # step <name> <command...>  → run once, logged, resumable.
 #   step gcc-pass1 build_gcc_pass1
 step() {
