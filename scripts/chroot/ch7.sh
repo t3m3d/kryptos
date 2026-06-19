@@ -100,9 +100,21 @@ b_utillinux() {
     make; make install
 }
 
+# A couple of locales must exist before perl, or perl's Configure can't probe
+# glibc's LC_ALL format and miscompiles locale.c (PERL_LC_ALL_CATEGORY_POSITIONS_
+# INIT undeclared). With locales present it detects name=value pairs correctly.
+# This is an arm/minimal-chroot deviation from the x86 LFS book.
+b_locales() {
+    mkdir -pv /usr/lib/locale
+    localedef -i C       -f UTF-8 C.UTF-8     || true
+    localedef -i en_US   -f UTF-8 en_US.UTF-8
+    localedef -i de_DE   -f UTF-8 de_DE.UTF-8
+}
+
 msg "ch7 temp tools (inside chroot)"
 step gettext  b_gettext
 step bison    b_bison
+step locales  b_locales
 step perl     b_perl
 step python   b_python
 step texinfo  b_texinfo
