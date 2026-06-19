@@ -57,3 +57,30 @@ device + confirming.
 KryptOS — pairs with Krypton, KryptScript, kryptonbytes, yubiKrypt. Codename baked
 into `env.sh` (`DISTRO_NAME`); shows up in `/etc/os-release`, the hostname, and
 the boot entry when we get there.
+
+## Host prep on Arch Linux
+
+The build host (L's box, or a Linux VM) is Arch. Install the LFS host tools:
+
+```sh
+sudo pacman -S --needed base-devel bison gawk texinfo python wget
+# base-devel covers gcc, make, binutils, patch, m4, sed, grep, gzip, tar, etc.
+sudo ln -sf bash /bin/sh    # if /bin/sh isn't bash; LFS expects bash-y sh during build
+```
+
+Then `./scripts/00-host-check.sh` should pass. Arch ships very current tool
+versions — if a host-tool version is *ahead* of what the LFS book lists, it's
+usually fine, but note it if a build breaks.
+
+## Run order (Linux host)
+
+```sh
+source env.sh
+./scripts/00-host-check.sh
+# prepare + mount $LFS  (scripts/01-prepare-disk.md — VM/loop recommended)
+./scripts/02-fetch-sources.sh
+sudo -E bash scripts/03-setup-user-env.sh
+su - lfs                       # clone this repo as lfs, then:
+source env.sh && source lib/build.sh
+./scripts/10-toolchain.sh      # Stage 1 (cross toolchain) — M debugs failures live
+```
