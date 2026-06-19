@@ -10,7 +10,10 @@ source ./env.sh
 source ./lib/build.sh
 : "${LFS_TGT:?}"; : "${LFS:?}"
 ARCH="$(uname -m)"
-W=/tmp/kb2          # scratch work dir
+# Scratch on the REAL disk, not the host's tmpfs /tmp (only ~4G → gcc's
+# libstdc++ PCH overflowed it and silently truncated the install once).
+W="${KB_WORK:-$LFS/build-tmp/kb2}"
+mkdir -p "$W"
 
 # echo the build triple via whichever config.guess the package ships
 cfg_build() {
