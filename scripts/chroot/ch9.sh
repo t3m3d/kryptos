@@ -41,9 +41,11 @@ EOF
     bash /usr/lib/udev/init-net-rules.sh 2>/dev/null || true
 }
 
-# --- 9.x sysvinit inittab (+ serial getty on ttyAMA0 for QEMU console) ---
+# --- 9.x sysvinit inittab (+ serial getty for the QEMU console; arch-specific) ---
 b_inittab() {
-    cat > /etc/inittab <<"EOF"
+    # x86 serial console = ttyS0, arm64 = ttyAMA0
+    case "$(uname -m)" in x86_64) STTY=ttyS0;; *) STTY=ttyAMA0;; esac
+    cat > /etc/inittab <<EOF
 id:3:initdefault:
 
 si::sysinit:/etc/rc.d/init.d/rc S
@@ -63,7 +65,7 @@ su:S016:once:/sbin/sulogin
 1:2345:respawn:/sbin/agetty --noclear tty1 9600
 2:2345:respawn:/sbin/agetty tty2 9600
 3:2345:respawn:/sbin/agetty tty3 9600
-s0:2345:respawn:/sbin/agetty --keep-baud ttyAMA0 115200,38400,9600 vt100
+s0:2345:respawn:/sbin/agetty --keep-baud $STTY 115200,38400,9600 vt100
 EOF
 }
 
