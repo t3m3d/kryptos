@@ -59,10 +59,16 @@ build_linux_headers() {
 
 build_glibc() {
     local d; d=$(extract_to /tmp/kc "$(find_src glibc-)"); cd "$d"
-    if [ "$ARCH" = x86_64 ]; then
-        ln -sfv ../lib/ld-linux-x86-64.so.2 "$LFS/lib64"
-        ln -sfv ../lib/ld-linux-x86-64.so.2 "$LFS/lib64/ld-lsb-x86-64.so.3"
-    fi
+    # dynamic-loader symlinks (arch-specific). VERIFY vs the book for your arch:
+    case "$ARCH" in
+        x86_64)
+            ln -sfv ../lib/ld-linux-x86-64.so.2 "$LFS/lib64"
+            ln -sfv ../lib/ld-linux-x86-64.so.2 "$LFS/lib64/ld-lsb-x86-64.so.3" ;;
+        aarch64)
+            # arm64 loader; per the LFS-ARM notes. We build on aarch64 (Lima VM).
+            mkdir -pv "$LFS/lib64"
+            ln -sfv ../lib/ld-linux-aarch64.so.1 "$LFS/lib64" ;;
+    esac
     # VERIFY: apply the FHS patch named in the book, e.g. glibc-*-fhs-1.patch
     patch -Np1 -i "$(ls "$LFS/sources/"glibc-*-fhs-*.patch 2>/dev/null | head -1)" || \
         warn "fhs patch not applied — check the book"

@@ -84,3 +84,30 @@ su - lfs                       # clone this repo as lfs, then:
 source env.sh && source lib/build.sh
 ./scripts/10-toolchain.sh      # Stage 1 (cross toolchain) — M debugs failures live
 ```
+
+## The build VM (set up 2026-06-19)
+
+A Lima VM **`kryptos`** is the build host on Brian's Mac: **Ubuntu 25.10,
+aarch64, 4 CPU / 8 GB / 60 GB**. (The Arch template crashed on Apple VZ; Ubuntu
+boots clean. arm64 native = much faster than emulated x86_64.)
+
+```sh
+limactl start kryptos                  # boot it
+limactl shell kryptos                  # get a shell
+```
+
+Host-prep (Ubuntu/apt — already done on the VM):
+```sh
+sudo apt-get update
+sudo apt-get install -y build-essential bison gawk texinfo m4 patch wget python3 xz-utils gettext
+```
+
+Repo lives at `~/kryptos` inside the VM; `$LFS=/mnt/lfs` on the VM disk.
+
+### Heads-up: we're on aarch64, the LFS book is x86_64
+
+Building arm64 means following the **LFS-ARM / cross-lfs deltas** on top of the
+mainline 12.2 book — mostly the dynamic-loader symlinks and a few configure bits.
+`10-toolchain.sh` already branches on `$ARCH` for the glibc loader; expect to
+adjust a couple more `VERIFY` spots live during Stage 1. (Host gcc is 15.2 — newer
+than the book; usually fine, occasionally needs a per-package nudge.)
