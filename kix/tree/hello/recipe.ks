@@ -2,7 +2,8 @@
 name="hello"
 version="2.12.1"
 source="https://mirrors.kernel.org/gnu/hello/hello-2.12.1.tar.gz"
-sha256=""   # TODO: pin
+sha256=""    # TODO: pin
+depends=()
 
 build() {
     run "./configure --prefix=/usr"

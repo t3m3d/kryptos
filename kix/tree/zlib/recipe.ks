@@ -3,7 +3,8 @@
 name="zlib"
 version="1.3.1"
 source="https://zlib.net/zlib-1.3.1.tar.gz"
-sha256=""   # TODO: pin — sha256sum the tarball and paste here
+sha256=""        # TODO: pin — sha256sum the tarball and paste here
+depends=()       # bash-array; kix walks these before installing this pkg
 
 build() {
     run "./configure --prefix=/usr"
