@@ -15,9 +15,11 @@ msg()  { printf '\033[1;35m[KryptOS]\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m[warn]\033[0m %s\n' "$*" >&2; }
 die()  { printf '\033[1;31m[fail]\033[0m %s\n' "$*" >&2; exit 1; }
 
-# done <name>  → true if that step already completed (for resuming a long build)
-done() { [ -f "$STATE_DIR/$1.done" ]; }
-mark() { touch "$STATE_DIR/$1.done"; }
+# is_done <name>  → true if that step already completed (resume support).
+# NB: do NOT name this 'done' — that's a bash reserved word and silently breaks
+# sourcing this file (then 'step' is undefined).
+is_done() { [ -f "$STATE_DIR/$1.done" ]; }
+mark()    { touch "$STATE_DIR/$1.done"; }
 
 # Find a source tarball in $LFS/sources by package prefix, e.g. find_src gcc-
 find_src() {
@@ -43,7 +45,7 @@ extract_to() {
 #   step gcc-pass1 build_gcc_pass1
 step() {
     local name="$1"; shift
-    if done "$name"; then msg "skip  $name (already done)"; return 0; fi
+    if is_done "$name"; then msg "skip  $name (already done)"; return 0; fi
     msg "build $name ..."
     if "$@" >"$LOG_DIR/$name.log" 2>&1; then
         mark "$name"; msg "ok    $name"
