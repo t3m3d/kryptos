@@ -25,7 +25,7 @@ echo "[shot] booting $QEMU with virtio-gpu; waiting ${WAIT}s for Hyprland…"
     -kernel "$KERNEL" \
     -append "root=/dev/vda rw console=$CON net.ifnames=0" \
     -drive file="$ROOT",if=virtio,format=raw \
-    -device virtio-gpu-pci -display none \
+    -device virtio-gpu-pci -display cocoa \
     -serial "file:$SER" \
     -qmp "unix:$MON,server,nowait" &
 QPID=$!
