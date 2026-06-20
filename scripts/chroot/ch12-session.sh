@@ -23,13 +23,8 @@ if [ "$(cat /etc/kryptos-render 2>/dev/null)" = software ]; then
     export MESA_LOADER_DRIVER_OVERRIDE=kms_swrast GALLIUM_DRIVER=llvmpipe AQ_NO_ATOMIC=1
 fi
 export AQ_DRM_DEVICES=/dev/dri/card0
-export AQ_TRACE=1
 # v0 runs the VM as root; Hyprland blocks root unless this flag is passed.
-Hyprland --i-am-really-stupid > /var/log/hypr.log 2>&1
-# persist the detailed log (it lives in tmpfs $XDG_RUNTIME_DIR otherwise)
-cp /run/user/0/hypr/*/hyprland.log /var/log/hypr-detail.log 2>/dev/null
-# drop to a shell instead of respawning, so the crash detail survives
-exec /bin/bash -il
+exec Hyprland --i-am-really-stupid > /var/log/hypr.log 2>&1
 EOF
 chmod +x /usr/local/bin/start-hypr
 
@@ -54,12 +49,6 @@ misc {
 }
 cursor {
     no_hardware_cursors = true
-}
-render {
-    # llvmpipe rejects the EGL native-fence sync (eglCreateSyncKHR EGL_BAD_
-    # ATTRIBUTE) → Hyprland crashes compositing clients. Disable explicit sync.
-    explicit_sync = 0
-    direct_scanout = false
 }
 input {
     kb_layout = us
