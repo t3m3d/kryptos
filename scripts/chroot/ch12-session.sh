@@ -14,18 +14,14 @@ export XDG_RUNTIME_DIR=/run/user/0
 mkdir -p "$XDG_RUNTIME_DIR"; chmod 700 "$XDG_RUNTIME_DIR"
 export XDG_SESSION_TYPE=wayland
 export LIBSEAT_BACKEND=builtin          # open DRM/input directly (no seatd in VM)
-export WLR_RENDERER_ALLOW_SOFTWARE=1
-# QEMU virtio-gpu has no virgl (no 3D). Use Mesa's kms_swrast (llvmpipe) for it.
-# NB: do NOT set LIBGL_ALWAYS_SOFTWARE — libEGL rejects it once a hardware DRM
-# device is explicitly opened ("failed to create dri2 screen"). The override is
-# the correct way to pick software rendering on a specific KMS node.
-export MESA_LOADER_DRIVER_OVERRIDE=kms_swrast
-export GALLIUM_DRIVER=llvmpipe
 export WLR_NO_HARDWARE_CURSORS=1
-# llvmpipe can't do EGL fences / atomic explicit-sync ("eglCreateSyncKHR
-# EGL_BAD_ATTRIBUTE", "Cannot commit when a page-flip is awaiting") → the frame
-# never reaches the scanout. Use legacy (non-atomic) DRM modesetting.
-export AQ_NO_ATOMIC=1
+export WLR_RENDERER_ALLOW_SOFTWARE=1
+# Render mode: default GPU (virgl, e.g. UTM). For a host with NO 3D (plain QEMU,
+# virtio-gpu cap sets 0) write "software" to /etc/kryptos-render → llvmpipe via
+# kms_swrast + legacy non-atomic modeset (llvmpipe can't do EGL fence/atomic).
+if [ "$(cat /etc/kryptos-render 2>/dev/null)" = software ]; then
+    export MESA_LOADER_DRIVER_OVERRIDE=kms_swrast GALLIUM_DRIVER=llvmpipe AQ_NO_ATOMIC=1
+fi
 export AQ_DRM_DEVICES=/dev/dri/card0
 export AQ_TRACE=1
 # v0 runs the VM as root; Hyprland blocks root unless this flag is passed.
