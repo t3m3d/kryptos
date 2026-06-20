@@ -14,6 +14,15 @@ mesonb() { local p="$1"; shift; into "$p"; rm -rf build; \
 # grim bundles the wlr-screencopy protocol; deps = wayland-client, pixman, libpng
 b_grim() { mesonb grim- -Dman-pages=disabled; }
 
+# DejaVu fonts — without any font, Hyprland/pango render text as tofu squares
+b_fonts() {
+    into dejavu-fonts-ttf-
+    mkdir -pv /usr/share/fonts/dejavu
+    cp -v ttf/*.ttf /usr/share/fonts/dejavu/
+    fc-cache -f
+}
+
 msg "desktop tools"
-step d_grim b_grim
+step d_grim  b_grim
+step d_fonts b_fonts
 msg "desktop tools done."
