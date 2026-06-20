@@ -23,14 +23,16 @@ b_kernel() {
     make mrproper
     make defconfig
     # brand the kernel + make sure the bits a QEMU guest needs are built in
-    scripts/config --set-str LOCALVERSION "-kryptos"
+    # one combined scripts/config call (per-opt loop didn't survive olddefconfig)
+    local en=""
     for opt in VIRTIO VIRTIO_PCI VIRTIO_BLK VIRTIO_NET VIRTIO_CONSOLE \
                $SERIAL_OPTS EXT4_FS DEVTMPFS DEVTMPFS_MOUNT BLK_DEV_INITRD \
-               DRM DRM_VIRTIO_GPU VIRTIO_GPU DRM_FBDEV_EMULATION \
-               FRAMEBUFFER_CONSOLE VT VT_CONSOLE; do
-        scripts/config --enable "$opt" 2>/dev/null || true
+               DRM DRM_VIRTIO_GPU DRM_FBDEV_EMULATION FRAMEBUFFER_CONSOLE VT; do
+        en+=" --enable $opt"
     done
+    scripts/config --set-str LOCALVERSION "-kryptos" $en
     make olddefconfig
+    grep -qE '^CONFIG_DRM_VIRTIO_GPU=y' .config || die "kernel: virtio-gpu DRM not enabled"
     make
     make modules_install
     local v; v=$(make -s kernelrelease)
