@@ -103,3 +103,18 @@ not need it.
   <qcow2>; mount -o ro,norecovery /dev/nbd0 /mnt`.
 
 Ping M if you need the exact lima VM state or the dist/ images.
+
+## FYI — the package manager (kix), already on the image
+`/usr/bin/kix` — KryptOS's package manager (source `kix/` in this repo). Pacman-style,
+hybrid binary/source, dependency-aware. v0 = bash engine (recipes are `.ks`, also valid
+bash → future Krypton rewrite). Installed via `kix/install-kix.sh` (`KIX_INSTALL_ROOT=
+/mnt/lfs` to stage). Commands:
+```
+kix -S <pkg>     install (binary .kpkg if available, else build from source)
+kix -Sy / -Su / -Syu   refresh tree+index / upgrade / both
+kix -Ss <term>   search        kix -Si <pkg>   info + deps
+kix -R[s] <pkg>  remove (-Rs forces past reverse-deps)
+kix -Q / -Qi / -Ql / -Qs   query installed (list / info / files / search)
+kix -B <pkg> [dir]   build a .kpkg for the binary repo
+```
+No need to reinvent install tooling — use kix. Recipe tree: `/var/lib/kix/tree`.
