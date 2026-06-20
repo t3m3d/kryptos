@@ -19,7 +19,8 @@ case "$ARCH" in
 esac
 # Bake the boot command line into the kernel + FORCE it, so loaders that mangle
 # or omit -append (e.g. UTM's arg field splits on spaces) still boot correctly.
-CMDLINE="root=/dev/vda rw console=$CON net.ifnames=0"
+# console=tty0 → boot log shows on the (UTM) graphical display; keep the serial too
+CMDLINE="root=/dev/vda rw console=tty0 console=$CON net.ifnames=0"
 
 b_kernel() {
     into linux-
