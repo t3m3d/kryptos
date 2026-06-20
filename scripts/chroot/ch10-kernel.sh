@@ -25,7 +25,9 @@ b_kernel() {
     # brand the kernel + make sure the bits a QEMU guest needs are built in
     scripts/config --set-str LOCALVERSION "-kryptos"
     for opt in VIRTIO VIRTIO_PCI VIRTIO_BLK VIRTIO_NET VIRTIO_CONSOLE \
-               $SERIAL_OPTS EXT4_FS DEVTMPFS DEVTMPFS_MOUNT BLK_DEV_INITRD; do
+               $SERIAL_OPTS EXT4_FS DEVTMPFS DEVTMPFS_MOUNT BLK_DEV_INITRD \
+               DRM DRM_VIRTIO_GPU VIRTIO_GPU DRM_FBDEV_EMULATION \
+               FRAMEBUFFER_CONSOLE VT VT_CONSOLE; do
         scripts/config --enable "$opt" 2>/dev/null || true
     done
     make olddefconfig
