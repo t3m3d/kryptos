@@ -22,6 +22,10 @@ export WLR_RENDERER_ALLOW_SOFTWARE=1
 export MESA_LOADER_DRIVER_OVERRIDE=kms_swrast
 export GALLIUM_DRIVER=llvmpipe
 export WLR_NO_HARDWARE_CURSORS=1
+# llvmpipe can't do EGL fences / atomic explicit-sync ("eglCreateSyncKHR
+# EGL_BAD_ATTRIBUTE", "Cannot commit when a page-flip is awaiting") → the frame
+# never reaches the scanout. Use legacy (non-atomic) DRM modesetting.
+export AQ_NO_ATOMIC=1
 export AQ_DRM_DEVICES=/dev/dri/card0
 export AQ_TRACE=1
 # v0 runs the VM as root; Hyprland blocks root unless this flag is passed.
