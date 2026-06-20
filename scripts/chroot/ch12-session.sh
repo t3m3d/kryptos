@@ -52,6 +52,52 @@ misc {
 cursor {
     no_hardware_cursors = true
 }
+input {
+    kb_layout = us
+    follow_mouse = 1
+    sensitivity = 0
+}
+
+# ---- keybinds ----
+$mod = SUPER
+bind = $mod, Return, exec, foot
+bind = $mod, Q, killactive,
+bind = $mod, M, exit,
+bind = $mod, V, togglefloating,
+bind = $mod, F, fullscreen,
+bind = $mod, J, togglesplit,
+bind = $mod, P, pseudo,
+# move focus
+bind = $mod, left,  movefocus, l
+bind = $mod, right, movefocus, r
+bind = $mod, up,    movefocus, u
+bind = $mod, down,  movefocus, d
+# move windows
+bind = $mod SHIFT, left,  movewindow, l
+bind = $mod SHIFT, right, movewindow, r
+bind = $mod SHIFT, up,    movewindow, u
+bind = $mod SHIFT, down,  movewindow, d
+# workspaces 1-9
+bind = $mod, 1, workspace, 1
+bind = $mod, 2, workspace, 2
+bind = $mod, 3, workspace, 3
+bind = $mod, 4, workspace, 4
+bind = $mod, 5, workspace, 5
+bind = $mod, 6, workspace, 6
+bind = $mod, 7, workspace, 7
+bind = $mod, 8, workspace, 8
+bind = $mod, 9, workspace, 9
+bind = $mod SHIFT, 1, movetoworkspace, 1
+bind = $mod SHIFT, 2, movetoworkspace, 2
+bind = $mod SHIFT, 3, movetoworkspace, 3
+bind = $mod SHIFT, 4, movetoworkspace, 4
+bind = $mod SHIFT, 5, movetoworkspace, 5
+# mouse drag move/resize
+bindm = $mod, mouse:272, movewindow
+bindm = $mod, mouse:273, resizewindow
+
+# spawn a terminal on login so the desktop is usable out of the box
+exec-once = foot
 EOF
 
 # autostart on tty1: root .bash_profile launches Hyprland on the graphical VT
