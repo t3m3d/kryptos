@@ -41,9 +41,9 @@ b_kernel() {
     make
     make modules_install
     local v; v=$(make -s kernelrelease)
-    cp -iv "$KIMG" "/boot/vmlinuz-$v"
-    cp -iv System.map "/boot/System.map-$v"
-    cp -iv .config "/boot/config-$v"
+    cp -fv "$KIMG" "/boot/vmlinuz-$v"
+    cp -fv System.map "/boot/System.map-$v"
+    cp -fv .config "/boot/config-$v"
     printf '%s\n' "$v" > "$KVER_FILE"
     printf '%s\n' "$ARCH" > /boot/kryptos-arch
     install -d /usr/share/doc/linux-$(pkgver linux-)
