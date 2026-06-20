@@ -34,9 +34,10 @@ b_kernel() {
         en+=" --enable $opt"
     done
     scripts/config --set-str LOCALVERSION "-kryptos" $en \
-        --enable CMDLINE_BOOL --set-str CMDLINE "$CMDLINE" --enable CMDLINE_FORCE
+        --set-str CMDLINE "$CMDLINE" --enable CMDLINE_FORCE
     make olddefconfig
     grep -qE '^CONFIG_DRM_VIRTIO_GPU=y' .config || die "kernel: virtio-gpu DRM not enabled"
+    grep -qE "^CONFIG_CMDLINE=\"root=/dev/vda" .config || die "kernel: built-in cmdline not set"
     make
     make modules_install
     local v; v=$(make -s kernelrelease)
