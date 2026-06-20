@@ -13,10 +13,13 @@ KVER_FILE=/boot/kryptos-kernel-version
 # arch-specific kernel image path + serial console driver
 ARCH="$(uname -m)"
 case "$ARCH" in
-    x86_64)  KIMG="arch/x86/boot/bzImage";  SERIAL_OPTS="SERIAL_8250 SERIAL_8250_CONSOLE" ;;
-    aarch64) KIMG="arch/arm64/boot/Image";  SERIAL_OPTS="SERIAL_AMBA_PL011 SERIAL_AMBA_PL011_CONSOLE" ;;
+    x86_64)  KIMG="arch/x86/boot/bzImage";  SERIAL_OPTS="SERIAL_8250 SERIAL_8250_CONSOLE"; CON=ttyS0 ;;
+    aarch64) KIMG="arch/arm64/boot/Image";  SERIAL_OPTS="SERIAL_AMBA_PL011 SERIAL_AMBA_PL011_CONSOLE"; CON=ttyAMA0 ;;
     *) die "unsupported arch: $ARCH" ;;
 esac
+# Bake the boot command line into the kernel + FORCE it, so loaders that mangle
+# or omit -append (e.g. UTM's arg field splits on spaces) still boot correctly.
+CMDLINE="root=/dev/vda rw console=$CON net.ifnames=0"
 
 b_kernel() {
     into linux-
@@ -30,7 +33,8 @@ b_kernel() {
                DRM DRM_VIRTIO_GPU DRM_FBDEV_EMULATION FRAMEBUFFER_CONSOLE VT; do
         en+=" --enable $opt"
     done
-    scripts/config --set-str LOCALVERSION "-kryptos" $en
+    scripts/config --set-str LOCALVERSION "-kryptos" $en \
+        --enable CMDLINE_BOOL --set-str CMDLINE "$CMDLINE" --enable CMDLINE_FORCE
     make olddefconfig
     grep -qE '^CONFIG_DRM_VIRTIO_GPU=y' .config || die "kernel: virtio-gpu DRM not enabled"
     make
