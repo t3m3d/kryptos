@@ -24,6 +24,8 @@ b_libX11()     { auto libX11- ; }
 b_libXrender() { auto libXrender- ; }
 b_libXfixes()  { auto libXfixes- ; }
 b_libXcursor() { auto libXcursor- ; }
+# keymap data (/usr/share/X11/xkb) — xkbcommon/Hyprland crash without it
+b_xkbconfig()  { into xkeyboard-config-; rm -rf build; meson setup build --prefix=/usr --libdir=lib --buildtype=release; ninja -C build; ninja -C build install; }
 
 msg "desktop Phase 5: minimal X11 chain for libXcursor"
 step x_util-macros  b_utilmacros
@@ -38,4 +40,5 @@ step x_libX11       b_libX11
 step x_libXrender   b_libXrender
 step x_libXfixes    b_libXfixes
 step x_libXcursor   b_libXcursor
+step x_xkeyboard-config b_xkbconfig
 msg "desktop Phase 5 done — xcursor present. Resume Hyprland (Phase 4)."
