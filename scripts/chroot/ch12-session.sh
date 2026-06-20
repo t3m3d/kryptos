@@ -112,4 +112,9 @@ EOF
 # tty1 autologin root (graphical VT); keep serial getty for logs
 sed -i 's#^1:2345:respawn:/sbin/agetty .*tty1.*#1:2345:respawn:/sbin/agetty --autologin root --noclear tty1 38400 linux#' /etc/inittab
 
+# UTM's virtio-gpu-pci has no virgl → Hyprland is really on llvmpipe. Force the
+# stable software path (kms_swrast + legacy non-atomic modeset) so compositing
+# clients (foot) doesn't crash. Delete this file to try GPU/virgl instead.
+echo software > /etc/kryptos-render
+
 msg "session configured — Hyprland autostarts on tty1 (autologin root, software GL)."
