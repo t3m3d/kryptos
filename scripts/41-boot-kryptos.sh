@@ -27,11 +27,14 @@ if [ "$KARCH" = x86_64 ]; then
         -netdev user,id=n0 -device virtio-net-pci,netdev=n0 \
         -nographic
 else
+    # Graphical: virtio-gpu + a cocoa window. The window's 60Hz refresh drives
+    # the virtio-gpu vblank, which the Hyprland desktop needs to complete DRM
+    # page-flips (software/llvmpipe has no virgl). Serial logs still to stdio.
     exec qemu-system-aarch64 \
-        -M virt -cpu host -accel hvf -smp 4 -m 2048 \
+        -M virt -cpu host -accel hvf -smp 4 -m 4096 \
         -kernel "$KERNEL" \
         -append "root=/dev/vda rw console=ttyAMA0 init=/sbin/init net.ifnames=0" \
         -drive file="$ROOTFS",if=virtio,format=raw \
         -netdev user,id=n0 -device virtio-net-pci,netdev=n0 \
-        -nographic
+        -device virtio-gpu-pci -display cocoa -serial stdio
 fi
