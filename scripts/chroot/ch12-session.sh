@@ -98,7 +98,8 @@ bindm = $mod, mouse:272, movewindow
 bindm = $mod, mouse:273, resizewindow
 
 # spawn a terminal on login so the desktop is usable out of the box
-exec-once = foot
+# (log foot's output so a crash can be diagnosed: /var/log/foot.log)
+exec-once = foot --log-level=info --log-no-syslog 2> /var/log/foot.log
 EOF
 
 # autostart on tty1: root .bash_profile launches Hyprland on the graphical VT
@@ -111,10 +112,5 @@ EOF
 
 # tty1 autologin root (graphical VT); keep serial getty for logs
 sed -i 's#^1:2345:respawn:/sbin/agetty .*tty1.*#1:2345:respawn:/sbin/agetty --autologin root --noclear tty1 38400 linux#' /etc/inittab
-
-# UTM's virtio-gpu-pci has no virgl → Hyprland is really on llvmpipe. Force the
-# stable software path (kms_swrast + legacy non-atomic modeset) so compositing
-# clients (foot) doesn't crash. Delete this file to try GPU/virgl instead.
-echo software > /etc/kryptos-render
 
 msg "session configured — Hyprland autostarts on tty1 (autologin root, software GL)."
