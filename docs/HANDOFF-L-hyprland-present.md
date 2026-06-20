@@ -48,21 +48,48 @@ presents fine. Confirmed not config/fonts/keybinds — those were red herrings (
 44-line "crash" was just Hyprland disabling verbose logs after config; set
 `debug:disable_logs=false` to see the real 598-line log).
 
-## Fix options (your call, on Linux)
-1. **Real GPU / working virgl** — easiest if you have an arm64 box with a GPU, or a
-   QEMU/libvirt with `virtio-gpu-gl` + a host that actually does virgl (macOS QEMU
-   here has NO opengl; UTM's gl-device showed nothing for us). Then drop the
-   `MESA_LOADER_DRIVER_OVERRIDE=kms_swrast` line — let Mesa use the real driver.
-2. **zink + lavapipe (software Vulkan, which HAS fences)** — rebuild Mesa with
-   `-Dgallium-drivers=llvmpipe,virgl,zink -Dvulkan-drivers=swrast` (+ deps:
-   vulkan-headers, spirv-headers, spirv-tools, glslang). Then
-   `MESA_LOADER_DRIVER_OVERRIDE=zink GALLIUM_DRIVER=zink`. Vulkan fences →
-   `EGL_ANDROID_native_fence_sync` works → presentation should be stable. This is the
-   most promising pure-software fix; just needs the vulkan build deps we skipped.
-3. **Patch aquamarine** to fall back to `glFinish()` when
-   `EGL_ANDROID_native_fence_sync` is absent (check the extension in `CDRMRenderer`
-   init ~`Renderer.cpp:57` EGLEXTENSIONS, gate the native-fence path). Rebuild
-   aquamarine + Hyprland (`ch11-desktop-p4.sh`). Cleanest long-term, upstreamable.
+## >>> PRIMARY TASK (Brian's call): zink + lavapipe <<<
+Software **Vulkan** (lavapipe) HAS fences, so zink (GL-over-Vulkan) gives a working
+`EGL_ANDROID_native_fence_sync` → aquamarine's `eglCreateSyncKHR` succeeds →
+presentation should be stable, no GPU needed. Concrete steps (arm64, in the chroot;
+add as `scripts/chroot/ch15-zink.sh` using the `step` framework):
+
+1. **Fetch + build the Vulkan deps** (order matters):
+   - `Vulkan-Headers` (cmake, headers only) — github KhronosGroup/Vulkan-Headers
+   - `SPIRV-Headers` (cmake, headers) — KhronosGroup/SPIRV-Headers
+   - `SPIRV-Tools` (cmake, needs SPIRV-Headers) — `-DSPIRV_SKIP_TESTS=ON`
+   - `glslang` (cmake, needs SPIRV-Tools) — `-DENABLE_OPT=1` ; or `-Dglslang` may be
+     skippable for lavapipe-only
+   - `Vulkan-Loader` (cmake, needs Vulkan-Headers) → libvulkan.so + the ICD loader so
+     zink can find lavapipe. `-DVULKAN_HEADERS_INSTALL_DIR=/usr`
+2. **Rebuild Mesa** (`ch11-desktop-p2.sh` b_mesa) adding zink + lavapipe:
+   `-Dgallium-drivers=llvmpipe,virgl,zink -Dvulkan-drivers=swrast`
+   (keep the `/usr/lib/dri` + `/usr/lib/gbm` megadriver symlinks step). This installs
+   the lavapipe ICD `/usr/share/vulkan/icd.d/lvp_icd.aarch64.json` + `libvulkan_lvp.so`.
+3. **Runtime env** in `ch12-session.sh` start-hypr (replace the kms_swrast lines):
+   ```
+   export MESA_LOADER_DRIVER_OVERRIDE=zink
+   export GALLIUM_DRIVER=zink
+   export WLR_RENDERER_ALLOW_SOFTWARE=1
+   # if multiple ICDs, pin lavapipe:
+   export VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.aarch64.json
+   ```
+4. **Test:** boot (UTM virtio-gpu-pci display, or your GPU/virgl box). Watch
+   `/run/user/0/hypr/*/hyprland.log` (with `debug:disable_logs=false`): the
+   `eglCreateSyncKHR EGL_BAD_ATTRIBUTE` + `Cannot commit when a page-flip is awaiting`
+   lines should be GONE. If zink reports no device, check `vulkaninfo` sees lavapipe.
+
+Notes: zink+lavapipe is slow (sw GL over sw Vulkan) but should be STABLE. If lavapipe
+build wants `LLVM` ≥15 — we already have LLVM 19 (`ch11-desktop-p2`). If you hit a
+Rust/`bindgen` requirement for some Mesa Vulkan bits, lavapipe (swrast) itself does
+not need it.
+
+## Fallback options (only if zink stalls)
+- **Real GPU / working virgl** — drop `MESA_LOADER_DRIVER_OVERRIDE` entirely.
+- **Patch aquamarine** to `glFinish()` when `EGL_ANDROID_native_fence_sync` is absent
+  (check the ext in `CDRMRenderer` init ~`Renderer.cpp:57` EGLEXTENSIONS, gate the
+  native-fence path), rebuild aquamarine + Hyprland (`ch11-desktop-p4.sh`).
+  Upstreamable.
 
 ## How to build/run/test
 - Build VM is Agent M's lima `kryptos` (arm64). You'll rebuild on your Linux box:
