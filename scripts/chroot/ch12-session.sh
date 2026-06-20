@@ -52,6 +52,12 @@ misc {
 cursor {
     no_hardware_cursors = true
 }
+render {
+    # llvmpipe rejects the EGL native-fence sync (eglCreateSyncKHR EGL_BAD_
+    # ATTRIBUTE) → Hyprland crashes compositing clients. Disable explicit sync.
+    explicit_sync = 0
+    direct_scanout = false
+}
 input {
     kb_layout = us
     follow_mouse = 1
