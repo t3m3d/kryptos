@@ -59,7 +59,8 @@ input {
 }
 
 # ---- keybinds ----
-$mod = SUPER
+# ALT (Option on a Mac) — UTM passes it reliably; Cmd/SUPER is eaten by macOS
+$mod = ALT
 bind = $mod, Return, exec, foot
 bind = $mod, Q, killactive,
 bind = $mod, M, exit,
