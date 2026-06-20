@@ -18,7 +18,8 @@ export WLR_RENDERER_ALLOW_SOFTWARE=1
 export LIBGL_ALWAYS_SOFTWARE=1          # llvmpipe (no host GPU in QEMU)
 export WLR_NO_HARDWARE_CURSORS=1
 export AQ_DRM_DEVICES=/dev/dri/card0
-exec Hyprland
+# v0 runs the VM as root; Hyprland blocks root unless this flag is passed
+exec Hyprland --i-am-really-stupid
 EOF
 chmod +x /usr/local/bin/start-hypr
 
