@@ -25,8 +25,11 @@ fi
 export AQ_DRM_DEVICES=/dev/dri/card0
 export AQ_TRACE=1
 # v0 runs the VM as root; Hyprland blocks root unless this flag is passed.
-# log to a persistent file for post-mortem (software GL bring-up is finicky).
-exec Hyprland --i-am-really-stupid > /var/log/hypr.log 2>&1
+Hyprland --i-am-really-stupid > /var/log/hypr.log 2>&1
+# persist the detailed log (it lives in tmpfs $XDG_RUNTIME_DIR otherwise)
+cp /run/user/0/hypr/*/hyprland.log /var/log/hypr-detail.log 2>/dev/null
+# drop to a shell instead of respawning, so the crash detail survives
+exec /bin/bash -il
 EOF
 chmod +x /usr/local/bin/start-hypr
 
@@ -103,9 +106,7 @@ bind = $mod SHIFT, 5, movetoworkspace, 5
 bindm = $mod, mouse:272, movewindow
 bindm = $mod, mouse:273, resizewindow
 
-# spawn a terminal on login so the desktop is usable out of the box
-# (log foot's output so a crash can be diagnosed: /var/log/foot.log)
-exec-once = foot --log-level=info --log-no-syslog 2> /var/log/foot.log
+# (foot auto-spawn temporarily disabled to test bare-desktop stability)
 EOF
 
 # autostart on tty1: root .bash_profile launches Hyprland on the graphical VT
