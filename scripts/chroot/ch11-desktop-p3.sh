@@ -12,13 +12,15 @@ mesonb() { local p="$1"; shift; into "$p"; rm -rf build; \
     ninja -C build; ninja -C build install; }
 
 b_libevdev() { into libevdev-; ./configure --prefix=/usr --disable-static; make; make install; }
-b_mtdev()    { into mtdev-;    ./configure --prefix=/usr --disable-static; make; make install; }
+# mtdev ships an ancient config.guess that can't recognise aarch64 → pass --build
+b_mtdev()    { into mtdev-;    ./configure --prefix=/usr --disable-static --build="$(uname -m)-unknown-linux-gnu"; make; make install; }
 b_libinput() { mesonb libinput- -Ddebug-gui=false -Dtests=false -Ddocumentation=false -Dlibwacom=false; }
 # seatd daemon + libseat (logind disabled — sysvinit). Hyprland uses libseat->seatd.
 b_seatd() {
-    mesonb seatd- -Dlibseat-logind=disabled -Dlibseat-seatd=enabled -Dserver=enabled \
-        -Dman-pages=disabled -Dexamples=disabled
-    # seat group + boot enablement
+    # libseat-builtin: lets a root compositor open DRM/input directly (no seatd
+    # daemon) — required for the single-user VM session (LIBSEAT_BACKEND=builtin).
+    mesonb seatd- -Dlibseat-logind=disabled -Dlibseat-seatd=enabled \
+        -Dlibseat-builtin=enabled -Dserver=enabled -Dman-pages=disabled -Dexamples=disabled
     getent group seat >/dev/null 2>&1 || groupadd -r seat 2>/dev/null || true
 }
 
