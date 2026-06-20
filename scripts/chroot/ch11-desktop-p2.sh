@@ -52,6 +52,14 @@ b_mesa() {
         -Dgallium-extra-hud=false -Dxlib-lease=disabled -Dglvnd=disabled
     ninja -C build
     ninja -C build install
+    # Mesa 24 ships one megadriver (libgallium-*.so) but does NOT create the
+    # /usr/lib/dri/<name>_dri.so loader symlinks EGL dlopen()s by name, nor the
+    # gbm backend link. Without these, EGL/GBM find no driver → compositor dies
+    # at backend create. Point the loader names at the megadriver.
+    local gl; gl=$(basename "$(ls /usr/lib/libgallium-*.so | head -1)")
+    mkdir -pv /usr/lib/dri /usr/lib/gbm
+    local d; for d in kms_swrast swrast virtio_gpu; do ln -sfv "../$gl" "/usr/lib/dri/${d}_dri.so"; done
+    ln -sfv "../$gl" /usr/lib/gbm/dri_gbm.so
 }
 
 msg "desktop Phase 2: render-2 + graphics (LLVM/Mesa)"
