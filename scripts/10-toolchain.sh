@@ -18,10 +18,11 @@ ARCH="$(uname -m)"
 
 build_binutils_pass1() {
     local d; d=$(extract_to /tmp/kb "$(find_src binutils-)"); cd "$d"
-    mkdir -v build && cd build
+    rm -rf build && mkdir -v build && cd build
     ../configure --prefix="$LFS/tools" --with-sysroot="$LFS" --target="$LFS_TGT" \
         --disable-nls --enable-gprofng=no --disable-werror --enable-default-hash-style=gnu
-    make && make install
+    make
+    make install
     cd /; rm -rf /tmp/kb
 }
 
@@ -32,15 +33,23 @@ build_gcc_pass1() {
     tar -xf "$(find_src gmp-)";  mv -v gmp-*  gmp
     tar -xf "$(find_src mpc-)";  mv -v mpc-*  mpc
     [ "$ARCH" = x86_64 ] && sed -e '/m64=/s/lib64/lib/' -i.orig gcc/config/i386/t-linux64
-    mkdir -v build && cd build
+    rm -rf build && mkdir -v build && cd build
+    # Host gcc >=16 defaults to a C++ std where u8"" literals are char8_t, which
+    # breaks gcc-14.2's bundled libcody (S2C/std::string ctors expect char). Pin the
+    # HOST C++ compiler to gnu++17 so u8"" stays char[]. Only host-side bits use CXX;
+    # the cross compiler being built is unaffected. (L's box: host gcc 16.1.)
     # VERIFY: --with-glibc-version must match the book's glibc.
-    ../configure --target="$LFS_TGT" --prefix="$LFS/tools" --with-glibc-version=2.40 \
+    ../configure CXX="g++ -std=gnu++17" CXX_FOR_BUILD="g++ -std=gnu++17" \
+        --target="$LFS_TGT" --prefix="$LFS/tools" --with-glibc-version=2.40 \
         --with-sysroot="$LFS" --with-newlib --without-headers \
         --enable-default-pie --enable-default-ssp \
         --disable-nls --disable-shared --disable-multilib --disable-threads \
         --disable-libatomic --disable-libgomp --disable-libquadmath \
         --disable-libssp --disable-libvtv --disable-libstdcxx --enable-languages=c,c++
-    make && make install
+    # Separate statements (NOT `make && make install`) so set -e in step() aborts on
+    # a make failure instead of the trailing cd/rm returning 0 and masking it.
+    make
+    make install
     # produce the full internal limits.h (book step)
     cd "$d"
     cat gcc/limitx.h gcc/glimits.h gcc/limity.h > \
@@ -53,7 +62,11 @@ build_linux_headers() {
     make mrproper
     make headers
     find usr/include -type f ! -name '*.h' -delete
-    cp -rv usr/include "$LFS/usr"
+    # Land headers at $LFS/usr/include/{asm,linux,...}. `cp -rv usr/include $LFS/usr`
+    # is fragile (dropped the include/ level on L's box → headers under $LFS/usr/asm,
+    # so glibc couldn't find <linux/version.h>). Copy contents into an explicit dir.
+    mkdir -pv "$LFS/usr/include"
+    cp -rv usr/include/* "$LFS/usr/include/"
     cd /; rm -rf /tmp/kh
 }
 
@@ -62,6 +75,12 @@ build_glibc() {
     # dynamic-loader symlinks (arch-specific). VERIFY vs the book for your arch:
     case "$ARCH" in
         x86_64)
+            # lib64 must be a DIRECTORY holding the loader symlink. 03-setup makes it,
+            # but when building without that step (rootless $LFS) ensure it here — else
+            # `ln ... $LFS/lib64` turns lib64 itself into a symlink and the second ln
+            # (and every program's /lib64/ld-linux lookup) breaks.
+            [ -L "$LFS/lib64" ] && rm -f "$LFS/lib64"
+            mkdir -pv "$LFS/lib64"
             ln -sfv ../lib/ld-linux-x86-64.so.2 "$LFS/lib64"
             ln -sfv ../lib/ld-linux-x86-64.so.2 "$LFS/lib64/ld-lsb-x86-64.so.3" ;;
         aarch64)
@@ -72,13 +91,14 @@ build_glibc() {
     # VERIFY: apply the FHS patch named in the book, e.g. glibc-*-fhs-1.patch
     patch -Np1 -i "$(ls "$LFS/sources/"glibc-*-fhs-*.patch 2>/dev/null | head -1)" || \
         warn "fhs patch not applied — check the book"
-    mkdir -v build && cd build
+    rm -rf build && mkdir -v build && cd build
     echo "rootsbindir=/usr/sbin" > configparms
     # VERIFY: --enable-kernel value is book-specific (host's min supported kernel).
     ../configure --prefix=/usr --host="$LFS_TGT" --build="$(../scripts/config.guess)" \
         --enable-kernel=5.4 --with-headers="$LFS/usr/include" \
         --disable-nscd libc_cv_slibdir=/usr/lib
-    make && make DESTDIR="$LFS" install
+    make
+    make DESTDIR="$LFS" install
     sed '/RTLDLIST=/s@/usr@@g' -i "$LFS/usr/bin/ldd"
     cd /; rm -rf /tmp/kc
 }
@@ -87,11 +107,12 @@ build_libstdcxx() {
     # built from the gcc sources (pass 1 of libstdc++)
     local d; d=$(extract_to /tmp/kx "$(find_src gcc-)"); cd "$d"
     local gccver; gccver=$(basename "$(find_src gcc-)" | sed -E 's/gcc-([0-9.]+)\.tar.*/\1/')
-    mkdir -v build && cd build
+    rm -rf build && mkdir -v build && cd build
     ../libstdc++-v3/configure --host="$LFS_TGT" --build="$(../config.guess)" \
         --prefix=/usr --disable-multilib --disable-nls --disable-libstdcxx-pch \
         --with-gxx-include-dir="/tools/$LFS_TGT/include/c++/$gccver"
-    make && make DESTDIR="$LFS" install
+    make
+    make DESTDIR="$LFS" install
     rm -v "$LFS"/usr/lib/lib{stdc++{,exp,fs},supc++}.la
     cd /; rm -rf /tmp/kx
 }

@@ -23,14 +23,22 @@ sed -i -E 's#https?://ftp\.gnu\.org/gnu#https://mirrors.kernel.org/gnu#g; s#http
 sed -i -E 's#https?://prdownloads\.sourceforge\.net/expat/(expat-([0-9.]+)\.tar\.[a-z]+)#https://github.com/libexpat/libexpat/releases/download/R_\2/\1#; ' wget-list
 sed -i 's#R_\([0-9]*\)\.\([0-9]*\)\.\([0-9]*\)#R_\1_\2_\3#' wget-list   # 2.6.2 -> 2_6_2 in the GitHub tag
 
+# Full LFS source mirror (flat dir, every pkg) — fallback when a primary URL's host
+# is unreachable. osuosl hosts the complete LFS <ver> set; rescued the 2026-05-29
+# run where the entire kernel.org family (mirrors.kernel.org / www.kernel.org /
+# ftp.gnu.org→kernel.org) was unreachable from the build box.
+LFS_MIRROR="https://ftp.osuosl.org/pub/lfs/lfs-packages/${LFS_VERSION}"
+
 : > failed.txt
-echo "[KryptOS] downloading (per-file 120s cap, resumable) ..."
+echo "[KryptOS] downloading (per-file 120s cap, resumable; osuosl fallback) ..."
 while read -r url; do
     [ -z "$url" ] && continue
     f=$(basename "$url")
     [ -s "$f" ] && continue
     if timeout 120 wget -q -c --timeout=25 --tries=3 "$url"; then
         echo "  ok   $f"
+    elif timeout 180 wget -q -c --timeout=30 --tries=3 "$LFS_MIRROR/$f"; then
+        echo "  ok   $f (osuosl)"
     else
         echo "  FAIL $url"; echo "$url" >> failed.txt
     fi
