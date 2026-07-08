@@ -8,9 +8,11 @@ set +h
 export LFS=/ KRYPTOS_ROOT=/root/kryptos
 source /root/kryptos/lib/build.sh
 
-# meson/ninja helper (most modern desktop libs use it)
+# meson/ninja helper. Force --libdir=lib: meson auto-detects lib64 on this
+# aarch64 base, but pkg-config only searches /usr/lib/pkgconfig → every meson
+# lib (+ its .pc) would be invisible. Pin to /usr/lib for the whole stack.
 mesonb() { local p="$1"; shift; into "$p"; rm -rf build; \
-    meson setup build --prefix=/usr --buildtype=release "$@"; \
+    meson setup build --prefix=/usr --libdir=lib --buildtype=release "$@"; \
     ninja -C build; ninja -C build install; }
 
 b_cmake() {
@@ -24,9 +26,10 @@ b_pcre2()  { into pcre2-; ./configure --prefix=/usr --enable-unicode --enable-ji
 b_glib()   { mesonb glib-2 -Dintrospection=disabled -Dman-pages=disabled -Dtests=false -Dsysprof=disabled; }
 b_pixman() { mesonb pixman- -Dtests=disabled; }
 
-b_wayland()   { mesonb wayland-1 -Ddocumentation=false -Dtests=false; }
+b_wayland()   { mesonb wayland-1 -Ddocumentation=false -Dtests=false -Ddtd_validation=false; }
 b_wlproto()   { mesonb wayland-protocols- -Dtests=false; }
-b_xkbcommon() { mesonb libxkbcommon- -Denable-docs=false -Denable-x11=false -Denable-wayland=true -Denable-xkbregistry=true; }
+# xkbregistry pulls libxml2 + is only layout enumeration (Hyprland doesn't need it)
+b_xkbcommon() { mesonb libxkbcommon- -Denable-docs=false -Denable-x11=false -Denable-wayland=true -Denable-xkbregistry=false; }
 b_libdrm()    { mesonb libdrm- -Dudev=true -Dvalgrind=disabled; }
 b_hwdata()    { into hwdata-; ./configure --prefix=/usr --disable-blacklist; make; make install; }
 b_displayinfo(){ mesonb libdisplay-info- ; }
