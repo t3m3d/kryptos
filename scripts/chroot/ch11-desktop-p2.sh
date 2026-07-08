@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Desktop layer, Phase 2 — graphics + the rest of the render stack.
 #   render-2: libpng, libjpeg-turbo, libwebp, fribidi, cairo, pango
-#   graphics: LLVM (for llvmpipe software GL) + Mesa (llvmpipe + virgl)
+#   graphics: LLVM + Mesa (llvmpipe, virgl, zink + lavapipe)
 # Runs inside the chroot; resumable. LLVM + Mesa are the long compiles.
 set -uo pipefail
 set +h
@@ -41,12 +41,12 @@ b_llvm() {
     ninja install
 }
 
-# --- Mesa (llvmpipe software GL + virgl for QEMU virtio-gpu) ---
+# --- Mesa (software GL + virgl + zink/lavapipe software Vulkan) ---
 b_mesa() {
     into mesa-
     rm -rf build
     meson setup build --prefix=/usr --libdir=lib --buildtype=release \
-        -Dplatforms=wayland -Dgallium-drivers=llvmpipe,virgl -Dvulkan-drivers= \
+        -Dplatforms=wayland -Dgallium-drivers=llvmpipe,virgl,zink -Dvulkan-drivers=swrast \
         -Dglx=disabled -Degl=enabled -Dgbm=enabled -Dgles2=enabled -Dopengl=true \
         -Dllvm=enabled -Dshared-llvm=enabled -Dvideo-codecs= -Dlmsensors=disabled \
         -Dgallium-extra-hud=false -Dxlib-lease=disabled -Dglvnd=disabled
@@ -58,7 +58,7 @@ b_mesa() {
     # at backend create. Point the loader names at the megadriver.
     local gl; gl=$(basename "$(ls /usr/lib/libgallium-*.so | head -1)")
     mkdir -pv /usr/lib/dri /usr/lib/gbm
-    local d; for d in kms_swrast swrast virtio_gpu; do ln -sfv "../$gl" "/usr/lib/dri/${d}_dri.so"; done
+    local d; for d in kms_swrast swrast virtio_gpu zink; do ln -sfv "../$gl" "/usr/lib/dri/${d}_dri.so"; done
     ln -sfv "../$gl" /usr/lib/gbm/dri_gbm.so
 }
 

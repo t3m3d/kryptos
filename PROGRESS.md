@@ -13,7 +13,11 @@ Tick as each phase passes on the Linux host. M debugs failures live.
 - [ ] **Stage 5** — config (fstab, hostname=kryptos, os-release, network)
 - [ ] **Stage 6** — kernel built + GRUB installed (KryptOS boot entry)
 - [ ] **Stage 6b** — first-ISO devtools: CA certs, curl, git, build-tool self-check
+- [ ] **Stage 6c** — Hyprland software Vulkan: zink/lavapipe Mesa path boots graphical session
 - [ ] **Stage 7** — reboot → login shell. **v0: it runs.**
 
 ## Notes / blockers
+
+- Hyprland software rendering should now be tested through zink/lavapipe, not raw llvmpipe EGL. Run `scripts/52-fetch-zink.sh`, then in chroot `scripts/chroot/ch16-zink.sh`, then remove `/build-state/d_mesa.done` if present and rebuild Mesa with `scripts/chroot/ch11-desktop-p2.sh`.
+
 (log compile failures + fixes here as we go)

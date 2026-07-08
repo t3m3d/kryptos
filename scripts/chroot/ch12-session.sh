@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Desktop session — autostart Hyprland on tty1 for the VM. Software GL (llvmpipe)
+# Desktop session — autostart Hyprland on tty1 for the VM. Software Vulkan (zink/lavapipe)
 # + libseat builtin backend (opens DRM/input directly as root, no seatd daemon
 # needed in a single-user VM). Runs inside the chroot.
 set -uo pipefail
@@ -16,12 +16,17 @@ export XDG_SESSION_TYPE=wayland
 export LIBSEAT_BACKEND=builtin          # open DRM/input directly (no seatd in VM)
 export WLR_NO_HARDWARE_CURSORS=1
 export WLR_RENDERER_ALLOW_SOFTWARE=1
-# QEMU/UTM virtio-gpu has no virgl → Mesa can't make a GL context on the hw
-# driver and Hyprland crashes at renderer init (right after "Using config").
-# FORCE the software GL driver (kms_swrast/llvmpipe) so the context succeeds.
-# Keep ATOMIC modeset (do NOT set AQ_NO_ATOMIC — legacy doesn't present in UTM).
-export MESA_LOADER_DRIVER_OVERRIDE=kms_swrast
-export GALLIUM_DRIVER=llvmpipe
+# Hyprland/Aquamarine needs native-fence capable presentation. Plain
+# llvmpipe EGL has failed here with EGL_BAD_ATTRIBUTE/page-flip stalls, so use
+# Mesa zink on top of lavapipe (software Vulkan) instead.
+export MESA_LOADER_DRIVER_OVERRIDE=zink
+export GALLIUM_DRIVER=zink
+case "$(uname -m)" in
+    aarch64|arm64) LVP_ICD=/usr/share/vulkan/icd.d/lvp_icd.aarch64.json ;;
+    x86_64)        LVP_ICD=/usr/share/vulkan/icd.d/lvp_icd.x86_64.json ;;
+    *)             LVP_ICD=$(ls /usr/share/vulkan/icd.d/lvp_icd*.json 2>/dev/null | head -1) ;;
+esac
+[ -n "${LVP_ICD:-}" ] && [ -f "$LVP_ICD" ] && export VK_ICD_FILENAMES="$LVP_ICD"
 export AQ_DRM_DEVICES=/dev/dri/card0
 # v0 runs the VM as root; Hyprland blocks root unless this flag is passed.
 exec Hyprland --i-am-really-stupid > /var/log/hypr.log 2>&1

@@ -32,6 +32,7 @@ source env.sh                 # config: $LFS mount, version, target triple, flag
 sudo mkdir -pv "$LFS" && sudo mount <your-lfs-partition> "$LFS"
 ./scripts/02-fetch-sources.sh # download + md5-verify all sources
 ./scripts/51-fetch-devtools.sh # first-ISO source distro tools: curl, git, CA certs
+./scripts/52-fetch-zink.sh    # Vulkan bits for Hyprland zink/lavapipe software rendering
 #   ... then build chapter by chapter (see manifest/build-order.txt + PROGRESS.md)
 ```
 
@@ -113,3 +114,30 @@ mainline 12.2 book — mostly the dynamic-loader symlinks and a few configure bi
 `10-toolchain.sh` already branches on `$ARCH` for the glibc loader; expect to
 adjust a couple more `VERIFY` spots live during Stage 1. (Host gcc is 15.2 — newer
 than the book; usually fine, occasionally needs a per-package nudge.)
+
+
+## Hyprland software-rendering fix
+
+For the first graphical image, build the desktop stack with Mesa zink over
+lavapipe. Plain llvmpipe EGL has hit native-fence/page-flip failures in
+QEMU/UTM. The intended order after desktop phase 1 is:
+
+```sh
+./scripts/52-fetch-zink.sh
+# inside chroot, after ch11-desktop-p1.sh and before rebuilding Mesa:
+bash /root/kryptos/scripts/chroot/ch16-zink.sh
+rm -f /build-state/d_mesa.done   # force Mesa rebuild if phase 2 already ran
+bash /root/kryptos/scripts/chroot/ch11-desktop-p2.sh
+bash /root/kryptos/scripts/chroot/ch12-session.sh
+```
+
+`40-make-image.sh` currently creates the bootable `rootfs.ext4` plus kernel for
+QEMU/UTM. Verify it with:
+
+```sh
+./scripts/43-verify-boot-artifact.sh dist
+./scripts/41-boot-kryptos.sh dist
+```
+
+A true installer ISO is the next packaging layer; the rootfs image is the
+current boot-test artifact.

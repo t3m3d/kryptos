@@ -76,5 +76,15 @@ grub           # install + grub.cfg with a "KryptOS" menu entry
 ca-certificates
 curl
 git
+
+## Stage 6c — Hyprland software Vulkan presentation
+# Needed for QEMU/UTM software-rendered Hyprland: zink over lavapipe provides
+# native-fence capable presentation where llvmpipe EGL stalls.
+Vulkan-Headers
+SPIRV-Headers
+SPIRV-Tools
+glslang
+Vulkan-Loader
+Mesa            # rebuild with gallium=zink and vulkan=swrast
 ## Stage 7 — reboot
 # exit chroot, unmount, reboot → login prompt. v0 done.
