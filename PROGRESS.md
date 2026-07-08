@@ -12,6 +12,7 @@ Tick as each phase passes on the Linux host. M debugs failures live.
 - [ ] **Stage 4** — final system (~80 pkgs, gcc final builds)
 - [ ] **Stage 5** — config (fstab, hostname=kryptos, os-release, network)
 - [ ] **Stage 6** — kernel built + GRUB installed (KryptOS boot entry)
+- [ ] **Stage 6b** — first-ISO devtools: CA certs, curl, git, build-tool self-check
 - [ ] **Stage 7** — reboot → login shell. **v0: it runs.**
 
 ## Notes / blockers

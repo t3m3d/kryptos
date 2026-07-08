@@ -31,6 +31,7 @@ source env.sh                 # config: $LFS mount, version, target triple, flag
 #   ... prepare a disk/partition: see scripts/01-prepare-disk.md (DESTRUCTIVE)
 sudo mkdir -pv "$LFS" && sudo mount <your-lfs-partition> "$LFS"
 ./scripts/02-fetch-sources.sh # download + md5-verify all sources
+./scripts/51-fetch-devtools.sh # first-ISO source distro tools: curl, git, CA certs
 #   ... then build chapter by chapter (see manifest/build-order.txt + PROGRESS.md)
 ```
 
@@ -83,6 +84,7 @@ sudo -E bash scripts/03-setup-user-env.sh
 su - lfs                       # clone this repo as lfs, then:
 source env.sh && source lib/build.sh
 ./scripts/10-toolchain.sh      # Stage 1 (cross toolchain) — M debugs failures live
+# after final system + kernel, run in chroot: scripts/chroot/ch15-devtools.sh
 ```
 
 ## The build VM (set up 2026-06-19)

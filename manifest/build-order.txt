@@ -69,5 +69,12 @@ procps-ng util-linux e2fsprogs sysklogd sysvinit
 linux          # configure + build the kernel
 grub           # install + grub.cfg with a "KryptOS" menu entry
 
+
+## Stage 6b — first-ISO developer tools
+# Required for a source-first distro with binary options. Built in chroot after
+# the final base system: CA roots, curl, git, and a self-host build-tool check.
+ca-certificates
+curl
+git
 ## Stage 7 — reboot
 # exit chroot, unmount, reboot → login prompt. v0 done.
