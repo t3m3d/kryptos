@@ -34,6 +34,9 @@ b_kernel() {
                DRM DRM_VIRTIO_GPU DRM_FBDEV_EMULATION FRAMEBUFFER_CONSOLE VT; do
         en+=" --enable $opt"
     done
+    if [ "$ARCH" = x86_64 ]; then
+        en+=" --enable CMDLINE_BOOL"
+    fi
     scripts/config --set-str LOCALVERSION "-kryptos" $en \
         --set-str CMDLINE "$CMDLINE" --enable CMDLINE_FORCE
     make olddefconfig

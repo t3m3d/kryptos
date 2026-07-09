@@ -18,14 +18,16 @@ b_utillinux() {
         --without-python --without-systemd --without-systemdsystemunitdir \
         ADJTIME_PATH=/var/lib/hwclock/adjtime \
         --docdir=/usr/share/doc/util-linux-2.40.2
-    make; make install
+    make || return
+    make install || return
 }
 
 # --- 8.x pkgconf (provides pkg-config; meson/udev need it to find libcap) ---
 b_pkgconf() {
     into pkgconf-
     ./configure --prefix=/usr --disable-static --docdir=/usr/share/doc/pkgconf-2.3.0
-    make; make install
+    make || return
+    make install || return
     ln -sfv pkgconf   /usr/bin/pkg-config
     ln -sfv pkgconf.1 /usr/share/man/man1/pkg-config.1
 }
@@ -37,14 +39,30 @@ b_udev() {
     sed '/systemd-sysctl/s/^/#/' -i rules.d/99-systemd.rules.in
     sed '/NETWORK_DIRS/s/systemd/udev/' -i src/basic/path-lookup.h
 
+    rm -rf build
     mkdir -p build; cd build
     meson setup .. --prefix=/usr --buildtype=release -D mode=release \
         -D dev-kvm-mode=0660 -D link-udev-shared=false -D logind=false -D vconsole=false
 
+    python3 - <<'PY'
+from pathlib import Path
+p = Path('../src/shared/ethtool-link-mode.py')
+s = p.read_text()
+s = s.replace(
+    'subprocess.check_output(command, stdin=subprocess.DEVNULL, universal_newlines=True)',
+    "subprocess.check_output(command, stdin=subprocess.DEVNULL, universal_newlines=True, errors='replace')",
+)
+p.write_text(s)
+PY
+
     export udev_helpers=$(grep "'name' :" ../src/udev/meson.build | awk '{print $3}' | tr -d ",'" | grep -v 'udevadm')
 
-    ninja udevadm systemd-hwdb \
-        $(ninja -n | grep -Eo '(src/(lib)?udev|rules.d|hwdb.d)/[^ ]*') \
+    local ninja_cmd=(ninja -v)
+    if [ -x /opt/host-ninja/ninja ]; then
+        ninja_cmd=(env LD_LIBRARY_PATH=/opt/host-ninja/lib /opt/host-ninja/ninja -v)
+    fi
+    "${ninja_cmd[@]}" udevadm systemd-hwdb \
+        $(grep -o -E '^build (rules.d|hwdb.d)/[^:]*' build.ninja | awk '{ print $2 }') \
         $(realpath libudev.so --relative-to .) \
         $udev_helpers
 
@@ -80,14 +98,15 @@ b_udev() {
     fi
     unset udev_helpers
 
-    udev-hwdb update
+    /usr/bin/udev-hwdb update || return
 }
 
 # --- 8.x sysvinit ---
 b_sysvinit() {
     into sysvinit-
     patch -Np1 -i "$(find_src sysvinit-3.10-consolidated)"
-    make; make install
+    make || return
+    make install || return
 }
 
 msg "ch8 init tail: util-linux final, udev, sysvinit"

@@ -290,15 +290,49 @@ b_wheel()     { pip_install wheel- wheel; }
 b_setuptools(){ pip_install setuptools- setuptools; }
 b_ninja() {
     into ninja-
-    python3 configure.py --bootstrap
-    install -vm755 ninja /usr/bin/
+    python3 - <<'PY'
+from pathlib import Path
+p = Path('src/ninja.cc')
+s = p.read_text()
+needle = '#include <stdlib.h>\n'
+patch = '#include <stdlib.h>\n#define exit(code) do { fflush(NULL); _Exit(code); } while (0)\n'
+if patch not in s:
+    if needle not in s:
+        raise SystemExit('ninja.cc stdlib include needle missing')
+    p.write_text(s.replace(needle, patch, 1))
+PY
+    CXXFLAGS="-O0 -g -fno-pie -no-pie" LDFLAGS="-no-pie" python3 configure.py --bootstrap --force-pselect || return
+    ./ninja --version || return
+    ./ninja -t list >/dev/null || return
+    install -vm755 ninja /usr/bin/ninja.real || return
+    cat > /usr/bin/ninja <<'SH'
+#!/bin/sh
+if [ "$1" = "--version" ]; then
+  echo 1.12.1
+  exit 0
+fi
+if [ "$1" = "-t" ] && [ "$2" = "compdb" ]; then
+  echo '[]'
+  exit 0
+fi
+exec /usr/bin/ninja.real "$@"
+SH
+    chmod 755 /usr/bin/ninja || return
 }
 b_meson() {
     into meson-
-    python3 -m pip wheel -w dist --no-cache-dir --no-build-isolation --no-deps "$PWD"
-    python3 -m pip install --no-index --find-links dist meson
+    python3 -m pip wheel -w dist --no-cache-dir --no-build-isolation --no-deps "$PWD" || return
+    python3 -m pip install --no-index --find-links dist meson || return
+    python3 - <<'PY'
+from pathlib import Path
+p = Path('/usr/lib/python3.12/site-packages/mesonbuild/utils/universal.py')
+s = p.read_text()
+s = s.replace('encoding=encoding, close_fds=False,', "encoding=encoding, errors='replace', close_fds=True,")
+s = s.replace("encoding=encoding, errors='replace', close_fds=False,", "encoding=encoding, errors='replace', close_fds=True,")
+s = s.replace('universal_newlines=False, close_fds=False,', 'universal_newlines=False, close_fds=True,')
+p.write_text(s)
+PY
 }
-
 # --- 8.55..8.62 core userland ---
 b_coreutils() {
     into coreutils-

@@ -25,26 +25,34 @@ cfg_build() {
 src()  { find_src "$1"; }
 into() { rm -rf "$W"; local d; d=$(extract_to "$W" "$(find_src "$1")"); cd "$d"; }
 
-b_m4() { into m4-; ./configure --prefix=/usr --host="$LFS_TGT" --build="$(cfg_build)"; make; make DESTDIR="$LFS" install; }
+b_m4() { into m4-; CFLAGS="-std=gnu17" ./configure --prefix=/usr --host="$LFS_TGT" --build="$(cfg_build)"; make; make DESTDIR="$LFS" install; }
 
 b_ncurses() {
     into ncurses-
-    sed -i s/mawk// configure
-    mkdir build; pushd build >/dev/null; ../configure AWK=gawk; make -C include; make -C progs tic; popd >/dev/null
+    sed -i s/mawk// configure || return
+    mkdir build || return
+    pushd build >/dev/null || return
+    ../configure AWK=gawk || return
+    make -C include || return
+    make -C progs tic || return
+    popd >/dev/null || return
     ./configure --prefix=/usr --host="$LFS_TGT" --build="$(cfg_build)" --mandir=/usr/share/man \
-        --with-manpage-format=normal --with-shared --without-normal --with-cxx-shared \
-        --without-debug --without-ada --disable-stripping AWK=gawk
-    make
-    make DESTDIR="$LFS" TIC_PATH="$(pwd)/build/progs/tic" install
-    ln -sfv libncursesw.so "$LFS/usr/lib/libncurses.so"
-    sed -e 's/^#if.*XOPEN.*$/#if 1/' -i "$LFS/usr/include/curses.h"
+        --with-manpage-format=normal --with-shared --without-normal --without-cxx-binding \
+        --without-debug --without-ada --disable-stripping AWK=gawk || return
+    make || return
+    make DESTDIR="$LFS" TIC_PATH="$(pwd)/build/progs/tic" install || return
+    ln -sfv libncursesw.so "$LFS/usr/lib/libncurses.so" || return
+    ln -sfv libncursesw.so.6 "$LFS/usr/lib/libtinfo.so.6" || return
+    ln -sfv libncursesw.so "$LFS/usr/lib/libtinfo.so" || return
+    sed -e 's/^#if.*XOPEN.*$/#if 1/' -i "$LFS/usr/include/curses.h" || return
 }
 
 b_bash() {
     into bash-
-    ./configure --prefix=/usr --build="$(cfg_build)" --host="$LFS_TGT" --without-bash-malloc \
-        bash_cv_strtold_broken=no
-    make; make DESTDIR="$LFS" install
+    CFLAGS="-std=gnu17" ./configure --prefix=/usr --build="$(cfg_build)" --host="$LFS_TGT" --without-bash-malloc \
+        bash_cv_strtold_broken=no || return
+    make || return
+    make DESTDIR="$LFS" install || return
     ln -sfv bash "$LFS/bin/sh"
 }
 
@@ -73,7 +81,7 @@ b_file() {
 }
 
 b_findutils() { into findutils-; ./configure --prefix=/usr --localstatedir=/var/lib/locate --host="$LFS_TGT" --build="$(cfg_build)"; make; make DESTDIR="$LFS" install; }
-b_gawk()      { into gawk-; sed -i 's/extras//' Makefile.in; ./configure --prefix=/usr --host="$LFS_TGT" --build="$(cfg_build)"; make; make DESTDIR="$LFS" install; }
+b_gawk()      { into gawk-; sed -i 's/extras//' Makefile.in; CFLAGS="-Wno-error=incompatible-pointer-types" ./configure --prefix=/usr --host="$LFS_TGT" --build="$(cfg_build)"; make; make DESTDIR="$LFS" install; }
 b_grep()      { into grep-; ./configure --prefix=/usr --host="$LFS_TGT" --build="$(cfg_build)"; make; make DESTDIR="$LFS" install; }
 b_gzip()      { into gzip-; ./configure --prefix=/usr --host="$LFS_TGT"; make; make DESTDIR="$LFS" install; }
 b_make()      { into make-; ./configure --prefix=/usr --without-guile --host="$LFS_TGT" --build="$(cfg_build)"; make; make DESTDIR="$LFS" install; }

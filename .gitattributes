@@ -1,2 +1,3 @@
 *.sh text eol=lf
 env.sh text eol=lf
+lib/*.sh text eol=lf

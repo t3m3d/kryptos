@@ -21,8 +21,8 @@ build_binutils_pass1() {
     rm -rf build && mkdir -v build && cd build
     ../configure --prefix="$LFS/tools" --with-sysroot="$LFS" --target="$LFS_TGT" \
         --disable-nls --enable-gprofng=no --disable-werror --enable-default-hash-style=gnu
-    make
-    make install
+    make || return
+    make install || return
     cd /; rm -rf /tmp/kb
 }
 
@@ -48,25 +48,25 @@ build_gcc_pass1() {
         --disable-libssp --disable-libvtv --disable-libstdcxx --enable-languages=c,c++
     # Separate statements (NOT `make && make install`) so set -e in step() aborts on
     # a make failure instead of the trailing cd/rm returning 0 and masking it.
-    make
-    make install
+    make || return
+    make install || return
     # produce the full internal limits.h (book step)
     cd "$d"
     cat gcc/limitx.h gcc/glimits.h gcc/limity.h > \
-        "$(dirname "$("$LFS/tools/bin/$LFS_TGT-gcc" -print-libgcc-file-name)")/include/limits.h"
+        "$(dirname "$("$LFS/tools/bin/$LFS_TGT-gcc" -print-libgcc-file-name)")/include/limits.h" || return
     cd /; rm -rf /tmp/kg
 }
 
 build_linux_headers() {
     local d; d=$(extract_to /tmp/kh "$(find_src linux-)"); cd "$d"
-    make mrproper
-    make headers
+    make mrproper || return
+    make headers || return
     find usr/include -type f ! -name '*.h' -delete
     # Land headers at $LFS/usr/include/{asm,linux,...}. `cp -rv usr/include $LFS/usr`
     # is fragile (dropped the include/ level on L's box → headers under $LFS/usr/asm,
     # so glibc couldn't find <linux/version.h>). Copy contents into an explicit dir.
     mkdir -pv "$LFS/usr/include"
-    cp -rv usr/include/* "$LFS/usr/include/"
+    cp -rv usr/include/* "$LFS/usr/include/" || return
     cd /; rm -rf /tmp/kh
 }
 
@@ -94,12 +94,12 @@ build_glibc() {
     rm -rf build && mkdir -v build && cd build
     echo "rootsbindir=/usr/sbin" > configparms
     # VERIFY: --enable-kernel value is book-specific (host's min supported kernel).
-    ../configure --prefix=/usr --host="$LFS_TGT" --build="$(../scripts/config.guess)" \
+    ../configure CFLAGS="-O2 -Wno-error=attributes" --prefix=/usr --host="$LFS_TGT" --build="$(../scripts/config.guess)" \
         --enable-kernel=5.4 --with-headers="$LFS/usr/include" \
         --disable-nscd libc_cv_slibdir=/usr/lib
-    make
-    make DESTDIR="$LFS" install
-    sed '/RTLDLIST=/s@/usr@@g' -i "$LFS/usr/bin/ldd"
+    make || return
+    make DESTDIR="$LFS" install || return
+    sed '/RTLDLIST=/s@/usr@@g' -i "$LFS/usr/bin/ldd" || return
     cd /; rm -rf /tmp/kc
 }
 
@@ -111,9 +111,9 @@ build_libstdcxx() {
     ../libstdc++-v3/configure --host="$LFS_TGT" --build="$(../config.guess)" \
         --prefix=/usr --disable-multilib --disable-nls --disable-libstdcxx-pch \
         --with-gxx-include-dir="/tools/$LFS_TGT/include/c++/$gccver"
-    make
-    make DESTDIR="$LFS" install
-    rm -v "$LFS"/usr/lib/lib{stdc++{,exp,fs},supc++}.la
+    make || return
+    make DESTDIR="$LFS" install || return
+    rm -v "$LFS"/usr/lib/lib{stdc++{,exp,fs},supc++}.la || return
     cd /; rm -rf /tmp/kx
 }
 
