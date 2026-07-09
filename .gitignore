@@ -6,3 +6,5 @@ build-state/
 *.img
 .DS_Store
 dist/
+
+sources-cache/
