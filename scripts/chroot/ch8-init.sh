@@ -84,7 +84,10 @@ PY
 
     # supplemental config + Makefile install bits from the udev-lfs tarball
     tar -xvf "$(find_src udev-lfs-)"
-    make -f udev-lfs-20230818/Makefile.lfs install
+    make -f udev-lfs-20230818/Makefile.lfs install || return
+    # This udev build omits the kmod builtin, so drop rules that would warn every boot.
+    sed -i '/kmod load/d' /usr/lib/udev/rules.d/80-drivers.rules || return
+    rm -f /usr/lib/udev/rules.d/90-vconsole.rules || return
 
     # man pages from the systemd-man-pages tarball (udev/libudev only)
     tar -xf "$(find_src systemd-man-pages-)" --no-same-owner --strip-components=1 \
@@ -114,4 +117,4 @@ step util-linux-final b_utillinux
 step pkgconf          b_pkgconf
 step udev             b_udev
 step sysvinit         b_sysvinit
-msg "ch8 init tail done — final system COMPLETE. Next: ch9 config + ch10 kernel/grub."
+msg "ch8 init tail done — next: ch8b.sh (fsck/syslog), then ch9 config + ch10 kernel."

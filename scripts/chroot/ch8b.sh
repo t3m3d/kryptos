@@ -10,20 +10,20 @@ source /root/kryptos/lib/build.sh
 # --- e2fsprogs (provides fsck.ext4 / e2fsck / mke2fs) ---
 b_e2fsprogs() {
     into e2fsprogs-
-    mkdir -v build; cd build
+    mkdir -v build || return; cd build || return
     ../configure --prefix=/usr --sysconfdir=/etc --enable-elf-shlibs \
-        --disable-libblkid --disable-libuuid --disable-uuidd --disable-fsck
-    make
-    make install
+        --disable-libblkid --disable-libuuid --disable-uuidd --disable-fsck || return
+    make || return
+    make install || return
     rm -fv /usr/lib/{libcom_err,libe2p,libext2fs,libss}.a 2>/dev/null || true
 }
 
 # --- sysklogd (syslogd; klogd merged in 2.x) ---
 b_sysklogd() {
     into sysklogd-
-    ./configure --prefix=/usr --sysconfdir=/etc --runstatedir=/run --without-logger
-    make
-    make install
+    ./configure --prefix=/usr --sysconfdir=/etc --runstatedir=/run --without-logger || return
+    make || return
+    make install || return
     [ -f /etc/syslog.conf ] || cat > /etc/syslog.conf <<"EOF"
 # /etc/syslog.conf — minimal KryptOS default
 auth,authpriv.*         -/var/log/auth.log

@@ -84,8 +84,18 @@ source env.sh
 sudo -E bash scripts/03-setup-user-env.sh
 su - lfs                       # clone this repo as lfs, then:
 source env.sh && source lib/build.sh
-./scripts/10-toolchain.sh      # Stage 1 (cross toolchain) — M debugs failures live
-# after final system + kernel, run in chroot: scripts/chroot/ch15-devtools.sh
+./scripts/10-toolchain.sh      # Stage 1 (cross toolchain)
+./scripts/20-temp-tools.sh     # Stage 2 temporary tools
+sudo -E bash scripts/30-enter-chroot.sh ch7.sh
+sudo -E bash scripts/30-enter-chroot.sh ch8.sh
+sudo -E bash scripts/30-enter-chroot.sh ch8-init.sh
+sudo -E bash scripts/30-enter-chroot.sh ch8b.sh
+sudo -E bash scripts/30-enter-chroot.sh ch9.sh
+sudo -E bash scripts/30-enter-chroot.sh ch10-kernel.sh
+OUT="$PWD/dist" LFS="$LFS" sudo -E bash scripts/40-make-image.sh
+./scripts/43-verify-boot-artifact.sh dist
+./scripts/41-boot-kryptos.sh dist
+# after final base boot, run in chroot: scripts/chroot/ch15-devtools.sh
 ```
 
 ## The build VM (set up 2026-06-19)
