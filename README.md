@@ -1,15 +1,15 @@
 # KryptOS
 
-A Linux distribution built from scratch — the `krypt-` family's own OS. Boots to a
+A Linux distribution built from scratch - the `krypt-` family's own OS. Boots to a
 login shell, built from the toolchain up (Linux From Scratch), branded KryptOS.
 
-> **Goal of v0:** a **bootable base system** — cross-toolchain → ~80 core
-> packages → kernel → GRUB → it logs in. Beyond-base (networking stack, desktop,
+> **Goal of v0:** a **bootable base system** - cross-toolchain - ~80 core
+> packages - kernel - GRUB - it logs in. Beyond-base (networking stack, desktop,
 > Krypton userland) comes later.
 
 ## Important: where this runs
 
-The build runs on a **Linux build host** — Agent L's ParrotOS box or a Linux VM —
+The build runs on a **Linux build host** - Agent L's ParrotOS box or a Linux VM -
 **not on macOS**. macOS can't compile a Linux toolchain. Agent M writes/maintains
 these scripts and debugs failures; L (or Brian) runs them on Linux.
 
@@ -18,7 +18,7 @@ these scripts and debugs failures; L (or Brian) runs them on Linux.
 This repo is **build automation around the LFS book**, not a fork of it. It does
 the parts that are safe to standardize (host check, source fetch + md5 verify,
 env, logging, resume) and tracks the chapter-by-chapter build order. Each
-chapter's package recipes are filled in and run together — pinned to the exact
+chapter's package recipes are filled in and run together - pinned to the exact
 LFS book version so versions/patches/md5s line up.
 
 Pick your LFS version in `env.sh` (`LFS_VERSION`) and follow that book.
@@ -42,10 +42,10 @@ sudo mkdir -pv "$LFS" && sudo mount <your-lfs-partition> "$LFS"
 env.sh                     all config (source it before anything)
 lib/build.sh               helper fns: logging, extract, build-in-dir, checkpoint/resume
 scripts/00-host-check.sh   host build-tool + version check
-scripts/01-prepare-disk.md GUIDED disk prep (manual — it's destructive)
+scripts/01-prepare-disk.md GUIDED disk prep (manual - it's destructive)
 scripts/02-fetch-sources.sh fetch wget-list + md5sums, verify
 manifest/build-order.txt   the full package build order (the roadmap)
-PROGRESS.md                checklist — tick chapters as they pass
+PROGRESS.md                checklist - tick chapters as they pass
 ```
 
 ## Status
@@ -56,7 +56,7 @@ device + confirming.
 
 ## Branding
 
-KryptOS — pairs with Krypton, KryptScript, kryptonbytes, yubiKrypt. Codename baked
+KryptOS - pairs with Krypton, KryptScript, kryptonbytes, yubiKrypt. Codename baked
 into `env.sh` (`DISTRO_NAME`); shows up in `/etc/os-release`, the hostname, and
 the boot entry when we get there.
 
@@ -71,7 +71,7 @@ sudo ln -sf bash /bin/sh    # if /bin/sh isn't bash; LFS expects bash-y sh durin
 ```
 
 Then `./scripts/00-host-check.sh` should pass. Arch ships very current tool
-versions — if a host-tool version is *ahead* of what the LFS book lists, it's
+versions - if a host-tool version is *ahead* of what the LFS book lists, it's
 usually fine, but note it if a build breaks.
 
 ## Run order (Linux host)
@@ -79,7 +79,7 @@ usually fine, but note it if a build breaks.
 ```sh
 source env.sh
 ./scripts/00-host-check.sh
-# prepare + mount $LFS  (scripts/01-prepare-disk.md — VM/loop recommended)
+# prepare + mount $LFS  (scripts/01-prepare-disk.md - VM/loop recommended)
 ./scripts/02-fetch-sources.sh
 sudo -E bash scripts/03-setup-user-env.sh
 su - lfs                       # clone this repo as lfs, then:
@@ -95,6 +95,8 @@ sudo -E bash scripts/30-enter-chroot.sh ch10-kernel.sh
 OUT="$PWD/dist" LFS="$LFS" sudo -E bash scripts/40-make-image.sh
 ./scripts/43-verify-boot-artifact.sh dist
 ./scripts/41-boot-kryptos.sh dist
+OUT="$PWD/dist" LFS="$LFS" sudo -E bash scripts/44-make-iso.sh
+MEM=8192 ./scripts/45-boot-iso.sh dist
 # after final base boot, run in chroot: scripts/chroot/ch15-devtools.sh
 ```
 
@@ -109,7 +111,7 @@ limactl start kryptos                  # boot it
 limactl shell kryptos                  # get a shell
 ```
 
-Host-prep (Ubuntu/apt — already done on the VM):
+Host-prep (Ubuntu/apt - already done on the VM):
 ```sh
 sudo apt-get update
 sudo apt-get install -y build-essential bison gawk texinfo m4 patch wget python3 xz-utils gettext
@@ -120,9 +122,9 @@ Repo lives at `~/kryptos` inside the VM; `$LFS=/mnt/lfs` on the VM disk.
 ### Heads-up: we're on aarch64, the LFS book is x86_64
 
 Building arm64 means following the **LFS-ARM / cross-lfs deltas** on top of the
-mainline 12.2 book — mostly the dynamic-loader symlinks and a few configure bits.
+mainline 12.2 book - mostly the dynamic-loader symlinks and a few configure bits.
 `10-toolchain.sh` already branches on `$ARCH` for the glibc loader; expect to
-adjust a couple more `VERIFY` spots live during Stage 1. (Host gcc is 15.2 — newer
+adjust a couple more `VERIFY` spots live during Stage 1. (Host gcc is 15.2 - newer
 than the book; usually fine, occasionally needs a per-package nudge.)
 
 
@@ -149,5 +151,9 @@ QEMU/UTM. Verify it with:
 ./scripts/41-boot-kryptos.sh dist
 ```
 
-A true installer ISO is the next packaging layer; the rootfs image is the
-current boot-test artifact.
+`40-make-image.sh` creates the direct QEMU rootfs image. `44-make-iso.sh` creates
+a bootable live ISO at `dist/kryptos.iso`; it uses a small initramfs to unpack
+the root filesystem to RAM, so test it with 8 GB+ RAM.
+
+
+
