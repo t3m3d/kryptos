@@ -92,13 +92,59 @@ sudo -E bash scripts/30-enter-chroot.sh ch8-init.sh
 sudo -E bash scripts/30-enter-chroot.sh ch8b.sh
 sudo -E bash scripts/30-enter-chroot.sh ch9.sh
 sudo -E bash scripts/30-enter-chroot.sh ch10-kernel.sh
+sudo -E bash scripts/30-enter-chroot.sh ch15-devtools.sh
+sudo -E bash scripts/30-enter-chroot.sh ch16-ssh.sh
+sudo -E bash scripts/30-enter-chroot.sh ch17-uefi.sh
 OUT="$PWD/dist" LFS="$LFS" sudo -E bash scripts/40-make-image.sh
 ./scripts/43-verify-boot-artifact.sh dist
 ./scripts/41-boot-kryptos.sh dist
 OUT="$PWD/dist" LFS="$LFS" sudo -E bash scripts/44-make-iso.sh
 MEM=8192 ./scripts/45-boot-iso.sh dist
-# after final base boot, run in chroot: scripts/chroot/ch15-devtools.sh
 ```
+
+## First live ISO
+
+`44-make-iso.sh` creates `dist/kryptos.iso`. The live ISO currently includes
+Git, curl, CA certificates, Dropbear SSH, UEFI support tools, and a manual disk installer.
+
+Default live login:
+
+```sh
+root
+kryptos
+```
+
+Install to a VM disk from the live ISO:
+
+```sh
+cat /proc/partitions
+kryptos-install --yes /dev/sda
+halt
+```
+
+`kryptos-install` is destructive and expects a whole target disk. It defaults to
+UEFI/GPT when the live ISO was booted under UEFI, and BIOS/MBR otherwise. You can
+force a mode with `--uefi` or `--bios`:
+
+```sh
+kryptos-install --yes /dev/sda --uefi
+kryptos-install --yes /dev/sda --bios
+```
+
+Hyper-V Generation 2 is the preferred UEFI path. Generation 1 remains BIOS
+fallback. Hyper-V usually exposes the first virtual disk as `/dev/sda`. After
+install, remove the ISO from the VM DVD drive or move the hard disk first in boot
+order.
+
+Dropbear SSH is installed but intentionally does not autostart in this early ISO.
+Start it manually after boot when you want remote access:
+
+```sh
+/etc/rc.d/init.d/dropbear start
+ip addr
+```
+
+Then connect from the host with `ssh root@<vm-ip>`.
 
 ## The build VM (set up 2026-06-19)
 

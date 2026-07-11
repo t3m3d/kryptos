@@ -28,7 +28,7 @@ need_lfs() {
 
 msg "prune $LFS -> $STAGE"
 rm -rf "$STAGE" "$WORK"
-mkdir -p "$STAGE" "$ISO_TREE/kryptos" "$ISO_TREE/boot/grub" "$INITRD"
+mkdir -p "$STAGE" "$ISO_TREE/kryptos" "$ISO_TREE/boot/grub" "$ISO_TREE/EFI/BOOT" "$INITRD"
 rsync -aHAX --numeric-ids \
     --exclude '/sources' --exclude '/tools' --exclude '/build-tmp' \
     --exclude '/build-logs' --exclude '/build-state' \
@@ -36,6 +36,7 @@ rsync -aHAX --numeric-ids \
     --exclude '/proc/*' --exclude '/sys/*' --exclude '/dev/*' --exclude '/run/*' \
     "$LFS"/ "$STAGE"/
 mkdir -p "$STAGE"/{proc,sys,dev,run,tmp,boot}
+install -Dm755 scripts/live/kryptos-install "$STAGE/usr/sbin/kryptos-install"
 chmod 1777 "$STAGE/tmp"
 
 msg "pack rootfs -> $ROOT_TAR"
@@ -99,6 +100,8 @@ mkdir -p /dev /proc /sys /run/iso /newroot
 mount -t devtmpfs devtmpfs /dev 2>/dev/null || true
 mount -t proc proc /proc 2>/dev/null || true
 mount -t sysfs sysfs /sys 2>/dev/null || true
+if [ -c /dev/tty0 ]; then exec >/dev/tty0 2>&1; fi
+echo "[kryptos-init] console ready"
 
 echo "[kryptos-init] search ISO rootfs"
 found=
@@ -122,8 +125,11 @@ fi
 
 echo "[kryptos-init] extract KryptOS rootfs to RAM"
 mount -t tmpfs -o size=85% tmpfs /newroot
+echo "[kryptos-init] rootfs unpack start"
 gzip -dc /run/iso/kryptos/rootfs.tar.gz | tar -xpf - -C /newroot
+echo "[kryptos-init] rootfs unpack done"
 mkdir -p /newroot/dev /newroot/proc /newroot/sys /newroot/run /newroot/tmp
+mkdir -p /newroot/media/kryptos-live
 chmod 1777 /newroot/tmp
 cat > /newroot/etc/fstab <<'FSTAB'
 proc      /proc          proc     defaults             0 0
@@ -134,7 +140,8 @@ tmpfs     /dev/shm       tmpfs    defaults             0 0
 cgroup2   /sys/fs/cgroup cgroup2  defaults             0 0
 tmpfs     /tmp           tmpfs    mode=1777            0 0
 FSTAB
-umount /run/iso 2>/dev/null || true
+mount --move /run/iso /newroot/media/kryptos-live
+echo "[kryptos-init] install media available at /media/kryptos-live"
 
 echo "[kryptos-init] switch_root"
 exec switch_root /newroot /sbin/init
@@ -156,27 +163,50 @@ set timeout=3
 set default=0
 
 menuentry "KryptOS live (RAM root)" {
-    linux /boot/vmlinuz console=tty0 console=ttyS0 net.ifnames=0
+    linux /boot/vmlinuz console=tty0 loglevel=7 net.ifnames=0
     initrd /boot/initramfs.img
 }
 GRUB
 
+msg "build UEFI boot image"
+if [ -d "$LFS/usr/lib/grub/x86_64-efi" ]; then
+    cat > "$LFS/tmp/kryptos-efi-grub.cfg" <<'GRUBEFI'
+search --file --set=root /kryptos/rootfs.tar.gz
+set prefix=($root)/boot/grub
+configfile /boot/grub/grub.cfg
+GRUBEFI
+    chroot "$LFS" /usr/bin/env PATH=/usr/sbin:/usr/bin:/sbin:/bin \
+        grub-mkimage -O x86_64-efi -o /tmp/BOOTX64.EFI \
+        -p /boot/grub -c /tmp/kryptos-efi-grub.cfg \
+        iso9660 normal linux configfile search search_fs_file part_gpt part_msdos fat ext2
+    cp -v "$LFS/tmp/BOOTX64.EFI" "$ISO_TREE/EFI/BOOT/BOOTX64.EFI"
+
+    EFI_IMG_LFS="$LFS/tmp/kryptos-efiboot.img"
+    EFI_MNT_LFS="$LFS/tmp/kryptos-efiboot-mnt"
+    rm -f "$EFI_IMG_LFS"
+    mkdir -p "$EFI_MNT_LFS"
+    dd if=/dev/zero of="$EFI_IMG_LFS" bs=1M count=16 status=none
+    chroot "$LFS" /usr/sbin/mkfs.fat -F 12 /tmp/kryptos-efiboot.img >/dev/null
+    mount -o loop "$EFI_IMG_LFS" "$EFI_MNT_LFS"
+    mkdir -p "$EFI_MNT_LFS/EFI/BOOT"
+    cp -v "$ISO_TREE/EFI/BOOT/BOOTX64.EFI" "$EFI_MNT_LFS/EFI/BOOT/BOOTX64.EFI"
+    umount "$EFI_MNT_LFS"
+    cp -v "$EFI_IMG_LFS" "$ISO_TREE/boot/efiboot.img"
+else
+    die "missing $LFS/usr/lib/grub/x86_64-efi - run ch18-grub-efi.sh"
+fi
+
 msg "make ISO -> $ISO"
 mkdir -p "$OUT"
 rm -f "$ISO"
-if command -v grub-mkrescue >/dev/null 2>&1; then
+if command -v xorriso >/dev/null 2>&1; then
+    xorriso -as mkisofs -iso-level 3 -full-iso9660-filenames -R -J -V KRYPTOS \
+        -o "$ISO" -e boot/efiboot.img -no-emul-boot "$ISO_TREE"
+elif command -v grub-mkrescue >/dev/null 2>&1; then
     grub-mkrescue -o "$ISO" "$ISO_TREE"
-elif command -v /mnt/c/Windows/System32/wsl.exe >/dev/null 2>&1; then
-    /mnt/c/Windows/System32/wsl.exe -d Ubuntu -u root -- bash -lc "cd /mnt/c/Users/brian/Documents/GitHub/kryptos && grub-mkrescue -o dist/kryptos.iso dist/iso-work/iso"
 else
-    die "grub-mkrescue missing; install grub + xorriso or run Ubuntu WSL fallback"
+    die "need xorriso or grub-mkrescue to write ISO"
 fi
 
 ls -lh "$ISO" "$ROOT_TAR" "$ISO_TREE/boot/initramfs.img"
 msg "done - boot with scripts/45-boot-iso.sh or QEMU -cdrom $ISO"
-
-
-
-
-
-

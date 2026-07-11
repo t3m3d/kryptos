@@ -15,16 +15,16 @@ b_ca_certs() {
 
 b_curl() {
     into curl-
-    ./configure --prefix=/usr --disable-static --with-openssl --with-ca-bundle=/etc/ssl/certs/ca-certificates.crt
-    make
-    make install
+    ./configure --prefix=/usr --disable-static --with-openssl --without-libpsl --disable-ldap --with-ca-bundle=/etc/ssl/certs/ca-certificates.crt || return
+    make || return
+    make install || return
     rm -fv /usr/lib/libcurl.la
 }
 
 b_git() {
     into git-
-    make prefix=/usr gitexecdir=/usr/libexec/git-core all
-    make prefix=/usr gitexecdir=/usr/libexec/git-core install
+    make prefix=/usr gitexecdir=/usr/libexec/git-core all || return
+    make prefix=/usr gitexecdir=/usr/libexec/git-core install || return
     install -dvm755 /usr/share/bash-completion/completions
     install -vm644 contrib/completion/git-completion.bash /usr/share/bash-completion/completions/git
 }
@@ -54,4 +54,4 @@ step ca-certificates b_ca_certs
 step curl           b_curl
 step git            b_git
 step devtools-check b_devtools_check
-msg "first ISO devtools done — KryptOS can fetch, clone, and build from source."
+msg "first ISO devtools done - KryptOS can fetch, clone, and build from source."

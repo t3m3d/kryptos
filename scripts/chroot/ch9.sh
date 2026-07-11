@@ -65,8 +65,10 @@ su:S016:once:/sbin/sulogin
 1:2345:respawn:/sbin/agetty --noclear tty1 9600
 2:2345:respawn:/sbin/agetty tty2 9600
 3:2345:respawn:/sbin/agetty tty3 9600
-s0:2345:respawn:/sbin/agetty --keep-baud $STTY 115200,38400,9600 vt100
 EOF
+    if [ -c "/dev/$STTY" ]; then
+        echo "s0:2345:respawn:/sbin/agetty --keep-baud $STTY 115200,38400,9600 vt100" >> /etc/inittab
+    fi
 }
 
 # --- 9.x clock + console + locale ---
