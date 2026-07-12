@@ -17,9 +17,26 @@ mesonb() { local p="$1"; shift; into "$p"; rm -rf build; \
 
 b_cmake() {
     into cmake-3
-    ./bootstrap --prefix=/usr --parallel=$(nproc)
-    make
-    make install
+    local src="$PWD" boot=/tmp/cmake-bootstrap
+    rm -rf "$boot" "$src/build"
+    mkdir -p "$boot"
+    tar -C "$boot" --strip-components=1 \
+        -xf "$(find_src bootstrap-cmake-3.30.5-linux-)"
+
+    # Bootstrap binary only configures the source build. The installed CMake
+    # is built here by the target compiler and remains source-built.
+    "$boot/bin/cmake" -S "$src" -B "$src/build" -G "Unix Makefiles" \
+        -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_USE_OPENSSL=OFF
+    "$boot/bin/cmake" --build "$src/build" --parallel "$(nproc)"
+    "$boot/bin/cmake" --install "$src/build"
+
+    # Catch the target iostream failure that made bootstrap file(STRINGS)
+    # spin forever instead of incorrectly marking CMake complete.
+    printf '%s\n' 'file(STRINGS "/etc/os-release" _out)' \
+        > /tmp/cmake-strings-smoke.cmake
+    timeout 5 /usr/bin/cmake -P /tmp/cmake-strings-smoke.cmake
+    /usr/bin/cmake --version
 }
 b_pcre2()  { into pcre2-; ./configure --prefix=/usr --enable-unicode --enable-jit \
     --enable-pcre2-16 --enable-pcre2-32 --disable-static; make; make install; }

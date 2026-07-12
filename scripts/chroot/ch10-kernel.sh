@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-# Stage 6 - LFS chapter 10 (kernel). Builds linux-6.10.5 for aarch64 with the
-# default config (arm64 defconfig already carries virtio-blk/net/console, PL011
-# serial = ttyAMA0, ext4, devtmpfs - everything to boot on QEMU -M virt). Runs
-# inside the chroot; resumable. The boot image + QEMU launch happen on the host.
+# Stage 6 - LFS chapter 10 kernel. Keeps VM drivers built in and adds the
+# storage, UEFI, AMD CPU, and modular AMDGPU support needed by physical x86_64.
+# Runs inside the chroot and is resumable.
 set -uo pipefail
 set +h
 export LFS=/ KRYPTOS_ROOT=/root/kryptos
@@ -31,14 +30,27 @@ b_kernel() {
     local en=""
     for opt in VIRTIO VIRTIO_PCI VIRTIO_BLK VIRTIO_NET VIRTIO_CONSOLE \
                $SERIAL_OPTS EXT4_FS DEVTMPFS DEVTMPFS_MOUNT BLK_DEV_INITRD \
-               DRM DRM_VIRTIO_GPU DRM_FBDEV_EMULATION DRM_SIMPLEDRM SYSFB SYSFB_SIMPLEFB FB FB_EFI FRAMEBUFFER_CONSOLE VT HYPERV VMBUS_HYPERV HYPERV_UTILS HYPERV_BALLOON HYPERV_NET HYPERV_STORAGE HID_HYPERV FB_HYPERV; do
+               DRM DRM_VIRTIO_GPU DRM_HYPERV DRM_FBDEV_EMULATION DRM_SIMPLEDRM SYSFB SYSFB_SIMPLEFB FB FB_EFI FRAMEBUFFER_CONSOLE VT HYPERV VMBUS_HYPERV HYPERV_UTILS HYPERV_BALLOON HYPERV_NET HYPERV_STORAGE HID_HYPERV; do
         en+=" --enable $opt"
     done
     if [ "$ARCH" = x86_64 ]; then
-        en+=" --enable CMDLINE_BOOL"
+        for opt in CMDLINE_BOOL CPU_SUP_AMD X86_MCE_AMD MICROCODE MICROCODE_AMD \
+                   IOMMU_SUPPORT AMD_IOMMU X86_AMD_PSTATE PCI_MSI PCIEPORTBUS \
+                   EFI EFI_STUB EFI_PARTITION NVME_CORE BLK_DEV_NVME ATA SATA_AHCI \
+                   SCSI BLK_DEV_SD BLK_DEV_SR USB_STORAGE XHCI_HCD XHCI_PCI \
+                   HID_GENERIC USB_HID ISO9660_FS JOLIET VFAT_FS MSDOS_FS \
+                   NLS_CODEPAGE_437 NLS_ISO8859_1 FW_LOADER FW_LOADER_COMPRESS \
+                   FW_LOADER_COMPRESS_XZ FW_LOADER_COMPRESS_ZSTD DRM_AMD_DC; do
+            en+=" --enable $opt"
+        done
     fi
     scripts/config --set-str LOCALVERSION "-kryptos" $en \
         --set-str CMDLINE "$CMDLINE" --disable CMDLINE_FORCE --disable CMDLINE_OVERRIDE
+    if [ "$ARCH" = x86_64 ]; then
+        # Load after the real root is mounted so firmware is available.
+        scripts/config --module DRM_AMDGPU
+        scripts/config --disable FB_HYPERV
+    fi
     make olddefconfig
     grep -qE '^CONFIG_DRM_VIRTIO_GPU=y' .config || die "kernel: virtio-gpu DRM not enabled"
     grep -qE '^CONFIG_DRM_SIMPLEDRM=y' .config || die "kernel: simpledrm not enabled"
@@ -46,6 +58,18 @@ b_kernel() {
     grep -qE "^CONFIG_CMDLINE=\"root=/dev/vda" .config || die "kernel: built-in cmdline not set"
     (grep -qE "^# CONFIG_CMDLINE_FORCE is not set" .config || ! grep -qE "^CONFIG_CMDLINE_FORCE=y" .config) || die "kernel: cmdline force must be off"
     (grep -qE "^# CONFIG_CMDLINE_OVERRIDE is not set" .config || ! grep -qE "^CONFIG_CMDLINE_OVERRIDE=y" .config) || die "kernel: cmdline override must be off"
+    if [ "$ARCH" = x86_64 ]; then
+        grep -qE '^CONFIG_DRM_HYPERV=y' .config || die "kernel: Hyper-V DRM not enabled"
+        grep -qE '^CONFIG_CPU_SUP_AMD=y' .config || die "kernel: AMD CPU support not enabled"
+        grep -qE '^# CONFIG_FB_HYPERV is not set' .config || die "kernel: legacy Hyper-V framebuffer must be disabled"
+        grep -qE '^CONFIG_DRM_AMDGPU=m' .config || die "kernel: amdgpu must be modular"
+        grep -qE '^CONFIG_DRM_AMD_DC=y' .config || die "kernel: AMD display core not enabled"
+        grep -qE '^CONFIG_BLK_DEV_NVME=y' .config || die "kernel: NVMe root support not built in"
+        grep -qE '^CONFIG_SATA_AHCI=y' .config || die "kernel: AHCI root support not built in"
+        grep -qE '^CONFIG_USB_STORAGE=y' .config || die "kernel: USB boot support not built in"
+        grep -qE '^CONFIG_EFI_STUB=y' .config || die "kernel: EFI stub not enabled"
+        grep -qE '^CONFIG_FW_LOADER_COMPRESS_ZSTD=y' .config || die "kernel: compressed firmware support missing"
+    fi
     make
     make modules_install
     local v; v=$(make -s kernelrelease)

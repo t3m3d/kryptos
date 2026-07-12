@@ -32,7 +32,7 @@ mkdir -p "$STAGE" "$ISO_TREE/kryptos" "$ISO_TREE/boot/grub" "$ISO_TREE/EFI/BOOT"
 rsync -aHAX --numeric-ids \
     --exclude '/sources' --exclude '/tools' --exclude '/build-tmp' \
     --exclude '/build-logs' --exclude '/build-state' \
-    --exclude '/root/kryptos' --exclude '/tmp/*' \
+    --exclude '/root/kryptos' --exclude '/tmp/*' --exclude '/mnt/*' \
     --exclude '/proc/*' --exclude '/sys/*' --exclude '/dev/*' --exclude '/run/*' \
     "$LFS"/ "$STAGE"/
 mkdir -p "$STAGE"/{proc,sys,dev,run,tmp,boot}
@@ -128,13 +128,14 @@ mount -t tmpfs -o size=85% tmpfs /newroot
 echo "[kryptos-init] rootfs unpack start"
 gzip -dc /run/iso/kryptos/rootfs.tar.gz | tar -xpf - -C /newroot
 echo "[kryptos-init] rootfs unpack done"
-mkdir -p /newroot/dev /newroot/proc /newroot/sys /newroot/run /newroot/tmp
+mkdir -p /newroot/dev/pts /newroot/dev/shm /newroot/proc /newroot/sys/fs/cgroup /newroot/run /newroot/tmp
 mkdir -p /newroot/media/kryptos-live
 chmod 1777 /newroot/tmp
 cat > /newroot/etc/fstab <<'FSTAB'
 proc      /proc          proc     defaults             0 0
 sysfs     /sys           sysfs    defaults             0 0
 devtmpfs  /dev           devtmpfs mode=0755,nosuid     0 0
+devpts    /dev/pts       devpts   gid=5,mode=620       0 0
 tmpfs     /run           tmpfs    defaults             0 0
 tmpfs     /dev/shm       tmpfs    defaults             0 0
 cgroup2   /sys/fs/cgroup cgroup2  defaults             0 0

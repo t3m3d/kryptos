@@ -33,6 +33,10 @@ echo "[chroot] copying build framework inside"
 mkdir -p "$LFS/root/kryptos/scripts/chroot" "$LFS/root/kryptos/lib"
 cp "$REPO/lib/build.sh" "$LFS/root/kryptos/lib/"
 cp "$REPO/scripts/chroot/"*.sh "$LFS/root/kryptos/scripts/chroot/"
+if [ -d "$REPO/config" ]; then
+    mkdir -p "$LFS/root/kryptos/config"
+    cp -a "$REPO/config/." "$LFS/root/kryptos/config/"
+fi
 chmod +x "$LFS/root/kryptos/scripts/chroot/"*.sh
 
 echo "[chroot] entering → /root/kryptos/scripts/chroot/$INNER"

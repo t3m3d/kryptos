@@ -19,14 +19,21 @@ cmkb() { local p="$1"; shift; into "$p"; rm -rf build; \
 
 # --- prebuilt Rust (for librsvg's Cargo build; tarball vendors its crates) ---
 b_rust() {
+    local rust_std
+    case "$(uname -m)" in
+        x86_64)        rust_std=rust-std-x86_64-unknown-linux-gnu ;;
+        aarch64|arm64) rust_std=rust-std-aarch64-unknown-linux-gnu ;;
+        *) die "unsupported Rust target architecture: $(uname -m)" ;;
+    esac
     into rust-1.83
     ./install.sh --prefix=/usr --disable-ldconfig \
-        --components=rustc,cargo,rust-std-aarch64-unknown-linux-gnu
+        --components="rustc,cargo,$rust_std"
     rustc --version; cargo --version
 }
 # librsvg deps
 b_libxml2()   { into libxml2-2; ./configure --prefix=/usr --disable-static --with-history --without-python; make; make install; }
-b_gdkpixbuf() { mesonb gdk-pixbuf- -Dintrospection=disabled -Dman=false -Dtests=false -Dinstalled_tests=false -Dgtk_doc=false; }
+b_gdkpixbuf() { mesonb gdk-pixbuf- -Dintrospection=disabled -Dman=false -Dtests=false \
+    -Dinstalled_tests=false -Dgtk_doc=false -Dgio_sniffing=false; }
 
 # librsvg 2.58+ needs cargo-c (needs crates.io → no offline). 2.54 is the last
 # autotools release: plain cargo + vendored crates = offline-buildable.
@@ -59,7 +66,10 @@ b_hyprwlscan() { cmkb hyprwayland-scanner- ; }
 b_hyprutils()  { cmkb hyprutils- ; }
 b_hyprlang()   { cmkb hyprlang- ; }
 b_hyprcursor() { cmkb hyprcursor- ; }
-b_hyprgraphics(){ cmkb hyprgraphics- ; }
+b_hyprgraphics() {
+    ln -sf libspng.pc /usr/lib/pkgconfig/spng.pc
+    cmkb hyprgraphics-
+}
 # Mesa is Wayland-only (no glx/glvnd → no legacy libGL); aquamarine renders via
 # EGL+GLES, so drop the unneeded OpenGL::OpenGL (libGL) link.
 b_aquamarine() {

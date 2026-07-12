@@ -11,6 +11,31 @@ mesonb() { local p="$1"; shift; into "$p"; rm -rf build; \
     meson setup build --prefix=/usr --libdir=lib --buildtype=release "$@"; \
     ninja -C build; ninja -C build install; }
 
+b_libudev_metadata() {
+    if pkg-config --exists libudev; then
+        return 0
+    fi
+
+    test -e /usr/lib/libudev.so
+    test -r /usr/include/libudev.h
+    install -d /usr/lib/pkgconfig
+    local version
+    version=$(udevadm --version)
+    cat > /usr/lib/pkgconfig/libudev.pc <<EOF
+prefix=/usr
+exec_prefix=\${prefix}
+libdir=\${prefix}/lib
+includedir=\${prefix}/include
+
+Name: libudev
+Description: Library to access udev device information
+Version: $version
+Libs: -L\${libdir} -ludev
+Cflags: -I\${includedir}
+EOF
+    pkg-config --exists libudev
+}
+
 b_libevdev() { into libevdev-; ./configure --prefix=/usr --disable-static; make; make install; }
 # mtdev ships an ancient config.guess that can't recognise aarch64 → pass --build
 b_mtdev()    { into mtdev-;    ./configure --prefix=/usr --disable-static --build="$(uname -m)-unknown-linux-gnu"; make; make install; }
@@ -25,6 +50,7 @@ b_seatd() {
 }
 
 msg "desktop Phase 3: input + session (libinput, seatd)"
+step d_libudev-metadata b_libudev_metadata
 step d_libevdev b_libevdev
 step d_mtdev    b_mtdev
 step d_libinput b_libinput

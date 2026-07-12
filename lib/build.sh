@@ -51,11 +51,18 @@ step() {
     local name="$1"; shift
     if is_done "$name"; then msg "skip  $name (already done)"; return 0; fi
     msg "build $name ..."
-    # Run the recipe in a `set -e` subshell so ANY failing command aborts it.
-    # Without this, a recipe whose last command happens to succeed (e.g. a
-    # trailing `ln`) masks an earlier `make install` failure and gets marked
-    # done — exactly what stranded the pass2 C++ stdlib once. Don't remove.
-    if ( set -e; "$@" ) >"$LOG_DIR/$name.log" 2>&1; then
+
+    # Recipe must not be invoked directly as an if-condition. Bash disables
+    # errexit inside functions used as conditions, allowing a later successful
+    # command to hide an earlier configure/build failure.
+    local rc restore_errexit=0
+    case $- in *e*) restore_errexit=1; set +e ;; esac
+
+    ( set -e; "$@" ) >"$LOG_DIR/$name.log" 2>&1
+    rc=$?
+    [ "$restore_errexit" -eq 1 ] && set -e
+
+    if [ "$rc" -eq 0 ]; then
         mark "$name"; msg "ok    $name"
     else
         die "$name FAILED — see $LOG_DIR/$name.log (tail -40 it)"

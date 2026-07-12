@@ -33,6 +33,8 @@ sudo mkdir -pv "$LFS" && sudo mount <your-lfs-partition> "$LFS"
 ./scripts/02-fetch-sources.sh # download + md5-verify all sources
 ./scripts/51-fetch-devtools.sh # first-ISO source distro tools: curl, git, CA certs
 ./scripts/52-fetch-zink.sh    # Vulkan bits for Hyprland zink/lavapipe software rendering
+./scripts/54-fetch-quickshell.sh # Qt 6 + native Quickshell shell
+./scripts/55-fetch-firmware.sh # verified AMD CPU/GPU firmware source
 #   ... then build chapter by chapter (see manifest/build-order.txt + PROGRESS.md)
 ```
 
@@ -81,6 +83,10 @@ source env.sh
 ./scripts/00-host-check.sh
 # prepare + mount $LFS  (scripts/01-prepare-disk.md - VM/loop recommended)
 ./scripts/02-fetch-sources.sh
+./scripts/50-fetch-desktop.sh
+./scripts/52-fetch-zink.sh
+./scripts/54-fetch-quickshell.sh
+./scripts/55-fetch-firmware.sh
 sudo -E bash scripts/03-setup-user-env.sh
 su - lfs                       # clone this repo as lfs, then:
 source env.sh && source lib/build.sh
@@ -92,9 +98,21 @@ sudo -E bash scripts/30-enter-chroot.sh ch8-init.sh
 sudo -E bash scripts/30-enter-chroot.sh ch8b.sh
 sudo -E bash scripts/30-enter-chroot.sh ch9.sh
 sudo -E bash scripts/30-enter-chroot.sh ch10-kernel.sh
+sudo -E bash scripts/30-enter-chroot.sh ch20-hardware-amd.sh
 sudo -E bash scripts/30-enter-chroot.sh ch15-devtools.sh
 sudo -E bash scripts/30-enter-chroot.sh ch16-ssh.sh
 sudo -E bash scripts/30-enter-chroot.sh ch17-uefi.sh
+sudo -E bash scripts/30-enter-chroot.sh ch18-grub-efi.sh
+sudo -E bash scripts/30-enter-chroot.sh ch11-desktop-p1.sh
+sudo -E bash scripts/30-enter-chroot.sh ch16-zink.sh
+sudo -E bash scripts/30-enter-chroot.sh ch11-desktop-p2.sh
+sudo -E bash scripts/30-enter-chroot.sh ch11-desktop-p3.sh
+sudo -E bash scripts/30-enter-chroot.sh ch11-desktop-p5-xcursor.sh
+sudo -E bash scripts/30-enter-chroot.sh ch11-desktop-p4.sh
+sudo -E bash scripts/30-enter-chroot.sh ch13-tools.sh
+sudo -E bash scripts/30-enter-chroot.sh ch14-foot.sh
+sudo -E bash scripts/30-enter-chroot.sh ch19-quickshell.sh
+sudo -E bash scripts/30-enter-chroot.sh ch12-session.sh
 OUT="$PWD/dist" LFS="$LFS" sudo -E bash scripts/40-make-image.sh
 ./scripts/43-verify-boot-artifact.sh dist
 ./scripts/41-boot-kryptos.sh dist
@@ -105,7 +123,8 @@ MEM=8192 ./scripts/45-boot-iso.sh dist
 ## First live ISO
 
 `44-make-iso.sh` creates `dist/kryptos.iso`. The live ISO currently includes
-Git, curl, CA certificates, Dropbear SSH, UEFI support tools, and a manual disk installer.
+Git, build tools, Dropbear SSH, UEFI support, Hyprland with Quickshell, AMD
+CPU/GPU firmware, and a manual disk installer.
 
 Default live login:
 

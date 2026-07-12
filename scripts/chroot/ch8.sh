@@ -163,6 +163,11 @@ b_shadow() {
 # --- 8.26 gcc (final) ---
 b_gcc() {
     into gcc-
+    # Keep the final x86_64 runtime in /usr/lib. Otherwise GCC installs it in
+    # /usr/lib64 while the temporary pass-2 libstdc++ remains first in lookup.
+    case "$(uname -m)" in
+        x86_64) sed -e '/m64=/s/lib64/lib/' -i.orig gcc/config/i386/t-linux64 ;;
+    esac
     tar -xf "$(find_src mpfr-)"; mv -v mpfr-* mpfr
     tar -xf "$(find_src gmp-)";  mv -v gmp-*  gmp
     tar -xf "$(find_src mpc-)";  mv -v mpc-*  mpc
@@ -171,6 +176,11 @@ b_gcc() {
         --enable-default-ssp --enable-host-pie --disable-multilib --disable-bootstrap \
         --disable-fixincludes --with-system-zlib
     make; make install
+    if ! readelf --dyn-syms --wide /usr/lib/libstdc++.so.6 \
+        | grep -F '_ZTINSt6thread6_StateE' >/dev/null; then
+        echo "final libstdc++ lacks required POSIX thread support" >&2
+        return 1
+    fi
     ln -svr /usr/bin/cpp /usr/lib
     ln -sfv ../../libexec/gcc/$(gcc -dumpmachine)/$(pkgver gcc-)/liblto_plugin.so \
         /usr/lib/bfd-plugins/ 2>/dev/null || { mkdir -p /usr/lib/bfd-plugins; \
@@ -247,10 +257,13 @@ b_openssl() {
 }
 b_kmod() {
     into kmod-
-    ./configure --prefix=/usr --sysconfdir=/etc --with-openssl --with-xz --with-zstd --with-zlib
-    make; make install
+    ./configure --prefix=/usr --sysconfdir=/etc --disable-manpages \
+        --with-openssl --with-xz --with-zstd --with-zlib
+    make
+    make install
     for t in depmod insmod modinfo modprobe rmmod; do ln -sfv kmod /usr/bin/$t; done
     ln -sfv kmod /usr/bin/lsmod
+    /usr/bin/kmod --version
 }
 b_elfutils() {
     into elfutils-
@@ -260,7 +273,15 @@ b_elfutils() {
     install -vm644 config/libelf.pc /usr/lib/pkgconfig
     rm -fv /usr/lib/libelf.a
 }
-b_libffi() { into libffi-; ./configure --prefix=/usr --disable-static --disable-exec-static-tramp; make; make install; }
+b_libffi() {
+    into libffi-
+    ./configure --prefix=/usr --libdir=/usr/lib --disable-multi-os-directory \
+        --disable-static --disable-exec-static-tramp
+    make
+    make install
+    /sbin/ldconfig
+    test -e /usr/lib/libffi.so.8
+}
 
 # --- 8.49..8.54 python stack ---
 b_python() {
@@ -270,10 +291,12 @@ b_python() {
     # ch7 temp Python uses --without-ensurepip. (--enable-optimizations dropped
     # for v0 build speed; not needed for a bootable system.)
     ./configure --prefix=/usr --enable-shared --with-system-expat
-    make; make install
+    make
+    make install
     # make install did not always materialise the pip3 console script here;
     # bootstrap it explicitly from the bundled wheel so the steps below work.
     python3 -m ensurepip --default-pip
+    python3 -c 'import ctypes; print(ctypes.__file__)'
     cat > /etc/pip.conf <<"EOF"
 [global]
 root-user-action = ignore
@@ -350,8 +373,11 @@ b_findutils(){ into findutils-; ./configure --prefix=/usr --localstatedir=/var/l
 b_groff()    { into groff-; PAGE=letter ./configure --prefix=/usr; make; make install; }
 b_grub() {
     into grub-
-    ./configure --prefix=/usr --sysconfdir=/etc --disable-efiemu --disable-werror
-    make; make install
+    ./configure --prefix=/usr --sysconfdir=/etc --disable-efiemu --disable-werror --with-platform=pc
+    : > grub-core/extra_deps.lst
+    make
+    make install
+    grub-mkimage -O i386-pc -o /tmp/grub-pc-test.img -p /boot/grub normal linux configfile search search_fs_uuid part_gpt ext2
     mv -v /etc/bash_completion.d/grub /usr/share/bash-completion/completions 2>/dev/null||true
 }
 b_gzip() { into gzip-; ./configure --prefix=/usr; make; make install; }
