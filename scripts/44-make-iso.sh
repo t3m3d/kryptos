@@ -100,7 +100,10 @@ mkdir -p /dev /proc /sys /run/iso /newroot
 mount -t devtmpfs devtmpfs /dev 2>/dev/null || true
 mount -t proc proc /proc 2>/dev/null || true
 mount -t sysfs sysfs /sys 2>/dev/null || true
-if [ -c /dev/tty0 ]; then exec >/dev/tty0 2>&1; fi
+case "$(cat /proc/cmdline 2>/dev/null || true)" in
+    *console=ttyS0*) [ ! -c /dev/ttyS0 ] || exec >/dev/ttyS0 2>&1 ;;
+    *)               [ ! -c /dev/tty0 ] || exec >/dev/tty0 2>&1 ;;
+esac
 echo "[kryptos-init] console ready"
 
 echo "[kryptos-init] search ISO rootfs"
@@ -164,7 +167,7 @@ set timeout=3
 set default=0
 
 menuentry "KryptOS live (RAM root)" {
-    linux /boot/vmlinuz console=tty0 loglevel=7 net.ifnames=0
+    linux /boot/vmlinuz console=tty0 console=ttyS0,115200n8 loglevel=7 net.ifnames=0
     initrd /boot/initramfs.img
 }
 GRUB
@@ -209,5 +212,8 @@ else
     die "need xorriso or grub-mkrescue to write ISO"
 fi
 
-ls -lh "$ISO" "$ROOT_TAR" "$ISO_TREE/boot/initramfs.img"
+need_host sha256sum
+(cd "$OUT" && sha256sum "$(basename "$ISO")" > "$(basename "$ISO").sha256")
+
+ls -lh "$ISO" "$ISO.sha256" "$ROOT_TAR" "$ISO_TREE/boot/initramfs.img"
 msg "done - boot with scripts/45-boot-iso.sh or QEMU -cdrom $ISO"

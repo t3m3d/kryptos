@@ -1,33 +1,29 @@
-# 🚦 ACTIVE HANDOFF → Agent L: START THE ZINK BUILD
+# KryptOS active handoff
 
-**Status: WAITING ON L.** Assigned by Brian 2026-06-20 (via Agent M / macOS).
+**Status (2026-08-01): fresh x86_64 UEFI live ISO boots Hyprland and Quickshell.**
 
-## Your task, L — start now
-Make Hyprland present on KryptOS by giving it a software renderer **with GPU
-fences**: build **zink + lavapipe** (software Vulkan) and point Mesa at it.
+## Verified
 
-Why: Hyprland's backend (aquamarine) requires `EGL_SYNC_NATIVE_FENCE_ANDROID`.
-**llvmpipe has no fences** → `eglCreateSyncKHR EGL_BAD_ATTRIBUTE` every frame →
-presentation breaks (screen blinks in the VM). **lavapipe (sw Vulkan) HAS fences**,
-so zink (GL-over-Vulkan) fixes it — no GPU required.
+- Preserved `/mnt/lfs` build root contains Hyprland, Quickshell, Mesa zink/lavapipe, Vulkan loader, build tools, Git, Dropbear, UEFI GRUB, and AMD firmware.
+- `scripts/44-make-iso.sh` produced `dist/kryptos.iso` (2,450,536,448 bytes).
+- Windows QEMU + WHPX booted the ISO through EDK2 UEFI, unpacked the RAM root, entered SysV runlevel 3, configured `eth0`, and reached `kryptos login:`.
+- A `virtio-vga` boot launched `start-hypr`; both a Wayland socket and Quickshell process were verified. QEMU framebuffer capture rendered the desktop.
+- Serial console now works without the old `s0 respawning too fast` failure.
+- `dist/kryptos.iso.sha256` records the artifact checksum.
 
-## Full step-by-step + root cause
-→ **`docs/HANDOFF-L-hyprland-present.md`** (read the PRIMARY TASK section).
+## Next priority
 
-## Short version
-1. Build deps: Vulkan-Headers → SPIRV-Headers → SPIRV-Tools → glslang → Vulkan-Loader
-   (suggest `scripts/chroot/ch15-zink.sh`, use the `lib/build.sh` `step` framework).
-2. Rebuild Mesa (`ch11-desktop-p2.sh` b_mesa): add
-   `-Dgallium-drivers=llvmpipe,virgl,zink -Dvulkan-drivers=swrast`
-   (keep the `/usr/lib/dri` + `/usr/lib/gbm` megadriver symlinks).
-3. `ch12-session.sh` start-hypr: replace the kms_swrast lines with
-   `export MESA_LOADER_DRIVER_OVERRIDE=zink GALLIUM_DRIVER=zink` (+ pin lavapipe ICD).
-4. Boot, check `/run/user/0/hypr/*/hyprland.log` (needs `debug:disable_logs=false`):
-   the `EGL_BAD_ATTRIBUTE` / `Cannot commit when a page-flip is awaiting` lines should
-   be GONE.
+1. Boot the same ISO on Zen 3 + RX 5700 hardware and inspect firmware/DRM logs.
+2. Replace fixed `eth0` QEMU networking with hardware-safe DHCP discovery.
+3. Add a normal live user and remove root autologin before public distribution.
+4. Add Intel graphics support, then NVIDIA support.
+5. Retest disk installation from this desktop image.
 
-Everything else (base system, ~75-pkg desktop stack, Hyprland) is built and on
-`main`. The build runs on YOUR Linux box (faster + better GPU options than M's Mac,
-whose QEMU has no OpenGL). Ping M if you need the lima VM state or dist/ images.
+## Commands
 
-_When done, update this file's status + comment in the handoff doc._
+```sh
+OUT="$PWD/dist" LFS=/mnt/lfs sudo -E bash scripts/44-make-iso.sh
+TIMEOUT=240 MEM=8192 ./scripts/46-smoke-iso.sh dist
+```
+
+Historical zink root-cause notes remain in `docs/HANDOFF-L-hyprland-present.md`.

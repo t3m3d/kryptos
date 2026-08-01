@@ -118,11 +118,14 @@ OUT="$PWD/dist" LFS="$LFS" sudo -E bash scripts/40-make-image.sh
 ./scripts/41-boot-kryptos.sh dist
 OUT="$PWD/dist" LFS="$LFS" sudo -E bash scripts/44-make-iso.sh
 MEM=8192 ./scripts/45-boot-iso.sh dist
+TIMEOUT=240 MEM=8192 ./scripts/46-smoke-iso.sh dist
 ```
 
 ## First live ISO
 
-`44-make-iso.sh` creates `dist/kryptos.iso`. The live ISO currently includes
+`44-make-iso.sh` creates `dist/kryptos.iso` plus `dist/kryptos.iso.sha256`.
+`46-smoke-iso.sh` boots it with UEFI QEMU and requires a serial login prompt.
+The live ISO currently includes
 Git, build tools, Dropbear SSH, UEFI support, Hyprland with Quickshell, AMD
 CPU/GPU firmware, and a manual disk installer.
 
