@@ -27,3 +27,22 @@ TIMEOUT=240 MEM=8192 ./scripts/46-smoke-iso.sh dist
 ```
 
 Historical zink root-cause notes remain in `docs/HANDOFF-L-hyprland-present.md`.
+
+## x86_64 continuation (2026-10-07)
+
+- Focus remains x86_64; ARM64 work is deferred.
+- This Mac checkout has the older ARM64 direct-kernel bundle in `dist/`, not
+  the August x86_64 ISO. Do not use that bundle as x86_64 boot evidence.
+- Artifact verification now prefers the live ISO when present and checks its
+  SHA-256 manifest. Use `scripts/43-verify-boot-artifact.sh dist iso` to require
+  the ISO explicitly. This verifies integrity, not ISO architecture or boot.
+- `EXPECT_ARCH=x86_64 scripts/43-verify-boot-artifact.sh dist direct` rejects
+  an ARM64 direct-kernel bundle. Direct mode requires exactly one kernel.
+- The UEFI ISO launcher now discovers Homebrew QEMU firmware on Apple Silicon
+  and Intel Macs, and preserves explicit firmware overrides.
+- Verified shell syntax, checksum success/failure cases, current ARM64
+  detection, and firmware argument selection using a fake QEMU executable.
+  No new ISO build or actual x86_64 guest boot has been performed on this Mac.
+- Next: obtain the August ISO and checksum, verify integrity, then run the
+  serial boot smoke test. Hyprland still needs a separate graphical test;
+  the serial smoke test proves only that boot reaches login.

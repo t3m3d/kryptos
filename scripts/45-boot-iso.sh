@@ -21,18 +21,20 @@ if [ -z "$OVMF" ] || [ -z "$OVMF_VARS" ]; then
         /usr/share/edk2-ovmf \
         /usr/share/OVMF; do
         if [ -f "$directory/OVMF_CODE.fd" ] && [ -f "$directory/OVMF_VARS.fd" ]; then
-            OVMF="$directory/OVMF_CODE.fd"
-            OVMF_VARS="$directory/OVMF_VARS.fd"
+            [ -n "$OVMF" ] || OVMF="$directory/OVMF_CODE.fd"
+            [ -n "$OVMF_VARS" ] || OVMF_VARS="$directory/OVMF_VARS.fd"
             break
         fi
     done
 fi
-if [ -z "$OVMF" ] && [ -f /usr/share/qemu/edk2-x86_64-code.fd ]; then
-    OVMF=/usr/share/qemu/edk2-x86_64-code.fd
-fi
-if [ -z "$OVMF_VARS" ] && [ -f /usr/share/qemu/edk2-i386-vars.fd ]; then
-    OVMF_VARS=/usr/share/qemu/edk2-i386-vars.fd
-fi
+# Linux QEMU and Homebrew QEMU on Apple Silicon / Intel Macs.
+for directory in /usr/share/qemu /opt/homebrew/share/qemu /usr/local/share/qemu; do
+    if [ -f "$directory/edk2-x86_64-code.fd" ] && [ -f "$directory/edk2-i386-vars.fd" ]; then
+        [ -n "$OVMF" ] || OVMF="$directory/edk2-x86_64-code.fd"
+        [ -n "$OVMF_VARS" ] || OVMF_VARS="$directory/edk2-i386-vars.fd"
+        break
+    fi
+done
 [ -f "$OVMF" ] && [ -f "$OVMF_VARS" ] || {
     echo "missing OVMF firmware; set OVMF and OVMF_VARS" >&2
     exit 1
