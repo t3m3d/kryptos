@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Boot the real x86_64 KryptOS ISO on macOS using QEMU software emulation.
+# Usage: 47-test-macos-iso.sh [dist-dir] [graphical|headless]
+set -euo pipefail
+REPO="$(cd "$(dirname "$0")/.." && pwd)"
+DIST="${1:-$REPO/dist}"
+MODE="${2:-graphical}"
+[ "$(uname -s)" = Darwin ] || { echo 'This launcher targets macOS.' >&2; exit 1; }
+case "$MODE" in graphical|headless) ;; *) echo 'Mode must be graphical or headless.' >&2; exit 1 ;; esac
+bash "$REPO/scripts/43-verify-boot-artifact.sh" "$DIST" iso
+command -v "${QEMU_BIN:-qemu-system-x86_64}" >/dev/null || { echo 'Install QEMU before testing.' >&2; exit 1; }
+export QEMU_ACCEL='tcg,thread=multi'
+export MEM="${MEM:-8192}"
+export SMP="${SMP:-4}"
+cd "$REPO"
+if [ "$MODE" = headless ]; then
+    export QEMU_DISPLAY=none
+    export TIMEOUT="${TIMEOUT:-600}"
+    exec bash scripts/46-smoke-iso.sh "$DIST"
+fi
+export QEMU_DISPLAY=cocoa
+echo 'x86_64 UEFI boot under software emulation; first boot may take several minutes.'
+echo 'At graphical tty1, run start-hypr. Serial login alone does not prove desktop rendering.'
+exec bash scripts/45-boot-iso.sh "$DIST"

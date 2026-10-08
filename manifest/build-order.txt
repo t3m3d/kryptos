@@ -65,6 +65,10 @@ procps-ng util-linux e2fsprogs sysklogd sysvinit
 # /etc/fstab, hostname=kryptos, /etc/os-release (NAME="KryptOS"), network,
 # console, locale, /etc/inittab (sysvinit), bootscripts.
 
+## Stage 5b — wired networking
+# scripts/56-fetch-network.sh then chroot/ch21-network.sh
+dhcpcd          # automatic wired DHCP; replaces QEMU-only static network
+
 ## Stage 6 — kernel + bootloader (LFS ch10)
 linux          # configure + build the kernel
 grub           # install + grub.cfg with a "KryptOS" menu entry

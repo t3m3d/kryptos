@@ -15,6 +15,15 @@ ARCH="$(uname -m)"
 W="${KB_WORK:-$LFS/build-tmp/kb2}"
 mkdir -p "$W"
 
+# Old checkpoints may claim success even when the sysroot install failed.
+# Validate the installed Stage-1 outputs before extracting/building packages.
+for required in usr/include/linux/version.h usr/lib/crt1.o usr/lib/libc.so usr/lib/libstdc++.so; do
+    [ -e "$LFS/$required" ] || die "Stage 1 incomplete: missing $LFS/$required; audit checkpoints and rerun 10-toolchain.sh"
+done
+printf 'int main(void) { return 0; }\n' | "$LFS_TGT-gcc" -x c - -o "$W/toolchain-check" || \
+    die "Stage 1 cross compiler cannot link; inspect glibc install before Stage 2"
+rm -f "$W/toolchain-check"
+
 # echo the build triple via whichever config.guess the package ships
 cfg_build() {
     for p in ./config.guess ./build-aux/config.guess ./support/config.guess; do

@@ -46,6 +46,7 @@ cp "$OVMF_VARS" "$VARS_COPY"
 exec "$QEMU_BIN" \
     -M q35 \
     -cpu max \
+    -accel "${QEMU_ACCEL:-tcg,thread=multi}" \
     -smp "${SMP:-4}" \
     -m "${MEM:-8192}" \
     -drive "if=pflash,format=raw,unit=0,readonly=on,file=$OVMF" \
@@ -54,6 +55,7 @@ exec "$QEMU_BIN" \
     -boot d \
     -netdev user,id=n0 \
     -device virtio-net-pci,netdev=n0 \
-    -display none \
+    -device virtio-vga \
+    -display "${QEMU_DISPLAY:-none}" \
     -monitor none \
     -serial stdio

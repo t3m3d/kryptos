@@ -34,6 +34,7 @@ sudo mkdir -pv "$LFS" && sudo mount <your-lfs-partition> "$LFS"
 ./scripts/51-fetch-devtools.sh # first-ISO source distro tools: curl, git, CA certs
 ./scripts/52-fetch-zink.sh    # Vulkan bits for Hyprland zink/lavapipe software rendering
 ./scripts/54-fetch-quickshell.sh # Qt 6 + native Quickshell shell
+./scripts/56-fetch-network.sh # verified DHCP client for wired networking
 ./scripts/55-fetch-firmware.sh # verified AMD CPU/GPU firmware source
 #   ... then build chapter by chapter (see manifest/build-order.txt + PROGRESS.md)
 ```
@@ -86,6 +87,7 @@ source env.sh
 ./scripts/50-fetch-desktop.sh
 ./scripts/52-fetch-zink.sh
 ./scripts/54-fetch-quickshell.sh
+./scripts/56-fetch-network.sh # verified DHCP client for wired networking
 ./scripts/55-fetch-firmware.sh
 sudo -E bash scripts/03-setup-user-env.sh
 su - lfs                       # clone this repo as lfs, then:
@@ -97,6 +99,7 @@ sudo -E bash scripts/30-enter-chroot.sh ch8.sh
 sudo -E bash scripts/30-enter-chroot.sh ch8-init.sh
 sudo -E bash scripts/30-enter-chroot.sh ch8b.sh
 sudo -E bash scripts/30-enter-chroot.sh ch9.sh
+sudo -E bash scripts/30-enter-chroot.sh ch21-network.sh
 sudo -E bash scripts/30-enter-chroot.sh ch10-kernel.sh
 sudo -E bash scripts/30-enter-chroot.sh ch20-hardware-amd.sh
 sudo -E bash scripts/30-enter-chroot.sh ch15-devtools.sh
@@ -225,3 +228,80 @@ the root filesystem to RAM, so test it with 8 GB+ RAM.
 
 
 
+
+## Wired network migration
+
+On the Linux build host, update the repository, fetch the DHCP source with
+`./scripts/56-fetch-network.sh`, then run
+`sudo -E bash scripts/30-enter-chroot.sh ch21-network.sh` and rebuild the ISO.
+The network stage runs its own checkpoints, so existing `ch9` builds need no
+checkpoint deletion. It does not start networking inside the build chroot.
+
+The image uses dhcpcd to discover wired `eth*` and `en*` interfaces, including
+QEMU and Hyper-V devices. Address, gateway, and DNS come from DHCP; the daemon
+starts in the background and handles late carrier. Wi-Fi authentication is not
+included. A DHCP server is required; Hyper-V needs a connected virtual switch.
+
+The exact old QEMU static configuration is backed up and removed. Other LFS
+`ifconfig.*` files retain ownership of their interfaces and are excluded from
+DHCP. The old generated public DNS list is backed up before replacement.
+
+After boot, verify actual networking (a login prompt alone is insufficient):
+
+```sh
+ip -br addr
+ip route
+cat /etc/resolv.conf
+curl -I --connect-timeout 10 https://github.com
+```
+
+Manual service control: `/etc/rc.d/init.d/kryptos-network start` or `stop`.
+
+## Desktop startup and diagnostics
+
+After updating an existing Linux build, rerun
+`sudo -E bash scripts/30-enter-chroot.sh ch12-session.sh` before packaging.
+The session stage installs the current launcher and diagnostic command from
+`config/`. Start the desktop manually from the graphical console with `start-hypr`.
+It currently requires root, prefers AMDGPU, rejects duplicate sessions, and
+waits up to 30 seconds for a new Wayland socket. Set `STARTUP_TIMEOUT=60` for
+slower software-rendered guests. Socket readiness is not proof of a rendered
+frame or a working Quickshell process.
+
+If boot, networking, or desktop startup fails, run `kryptos-diagnose`. It writes
+an owner-readable report under `/tmp` containing boot mode, kernel command line,
+DRM drivers, network addresses/routes/DNS, process information, and recent
+Hyprland/kernel logs. Missing diagnostic tools are reported without aborting.
+The command makes no network requests or configuration changes and never
+uploads the report. Review the report before sharing: it can include machine
+and network information. Existing output files are never overwritten.
+
+Offline regression checks on Mac or Linux:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -v
+```
+
+These exercise launcher/service behavior with fixtures, not the actual GPU,
+DHCP server, GRUB boot, or target Linux build.
+
+## x86_64 ISO testing on macOS
+
+Once a real x86_64 `kryptos.iso` and `kryptos.iso.sha256` are in `dist/`:
+
+```sh
+./scripts/47-test-macos-iso.sh dist graphical
+./scripts/47-test-macos-iso.sh dist headless
+```
+
+The launcher checks the checksum, uses Homebrew QEMU's UEFI firmware and
+software x86 emulation, and gives the guest 8 GiB RAM. Graphical mode uses Cocoa
+and virtio VGA; start Hyprland from tty1. Headless mode allows 600 seconds to
+reach serial login. Stop other large VMs before booting the ISO. Apple Silicon
+cannot use HVF to accelerate an x86 guest; builds and boot tests are slower.
+
+The local Lima `krypton` VM is x86_64 and can build KryptOS independently of
+Windows. Current scripts are copied to `~/kryptos-macos-build` inside that VM;
+`/mnt/lfs` holds the preserved partial build. Do not mistake its VM disk capacity
+for free physical Mac storage. The Mac had about 25 GiB free when work resumed;
+check host space before proceeding to the full desktop and ISO staging.

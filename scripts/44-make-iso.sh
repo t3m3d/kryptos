@@ -26,6 +26,10 @@ need_lfs() {
     [ -e "$LFS$1" ] || die "LFS file missing: $1"
 }
 
+need_lfs /usr/sbin/dhcpcd
+need_lfs /etc/rc.d/init.d/kryptos-network
+[ -x "$LFS/usr/sbin/dhcpcd" ] || die "DHCP client not executable - run ch21-network.sh"
+
 msg "prune $LFS -> $STAGE"
 rm -rf "$STAGE" "$WORK"
 mkdir -p "$STAGE" "$ISO_TREE/kryptos" "$ISO_TREE/boot/grub" "$ISO_TREE/EFI/BOOT" "$INITRD"

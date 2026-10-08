@@ -13,7 +13,7 @@
 - [x] Fresh ISO starts Hyprland and Quickshell with `virtio-vga`
 - [x] UEFI disk installer previously boots installed system
 - [ ] Zen 3 / RX 5700 physical boot
-- [ ] Hardware-safe DHCP networking
+- [ ] Hardware-safe DHCP networking (build/service implemented; target build + lease test pending)
 - [ ] Non-root live session and public-release hardening
 - [ ] Retest disk installation from current desktop ISO
 - [ ] Intel graphics support

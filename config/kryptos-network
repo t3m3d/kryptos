@@ -1,0 +1,22 @@
+#!/bin/sh
+# dhcpcd discovers wired interfaces and watches for hotplug/late carrier.
+# Existing LFS per-interface configurations keep ownership of their interfaces.
+set -eu
+DHCPCD=${DHCPCD:-/usr/sbin/dhcpcd}
+SYSCONFIG=${SYSCONFIG:-/etc/sysconfig}
+case "${1:-}" in
+    start)
+        [ -x "$DHCPCD" ] || { echo "KryptOS: missing dhcpcd" >&2; exit 1; }
+        set -- -b
+        for config in "$SYSCONFIG"/ifconfig.*; do
+            [ -f "$config" ] || continue
+            # LFS interface files are administrator-owned shell configuration.
+            iface=$(IFACE=; . "$config"; printf '%s' "$IFACE")
+            [ -z "$iface" ] || set -- "$@" --denyinterfaces "$iface"
+        done
+        exec "$DHCPCD" "$@"
+        ;;
+    stop) exec "$DHCPCD" --exit ;;
+    restart) "$0" stop; exec "$0" start ;;
+    *) echo "usage: $0 {start|stop|restart}" >&2; exit 2 ;;
+esac

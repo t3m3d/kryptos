@@ -21,23 +21,11 @@ ff02::2    ip6-allrouters
 EOF
 }
 
-# --- 9.x network (static eth0 for the VM; lo handled by bootscripts) ---
+# --- 9.x network (DHCP installed by ch21-network.sh; lo handled by bootscripts) ---
 b_network() {
     install -dv /etc/sysconfig
-    cat > /etc/sysconfig/ifconfig.eth0 <<"EOF"
-ONBOOT=yes
-IFACE=eth0
-SERVICE=ipv4-static
-IP=10.0.2.15
-GATEWAY=10.0.2.2
-PREFIX=24
-BROADCAST=10.0.2.255
-EOF
-    cat > /etc/resolv.conf <<"EOF"
-nameserver 1.1.1.1
-nameserver 8.8.8.8
-EOF
-    # stable network device naming
+    # Do not bake QEMU's private subnet or public DNS into hardware images.
+    # ch21-network.sh installs the DHCP client and migrates existing builds.
     bash /usr/lib/udev/init-net-rules.sh 2>/dev/null || true
 }
 
