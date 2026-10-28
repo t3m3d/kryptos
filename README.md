@@ -305,3 +305,51 @@ Windows. Current scripts are copied to `~/kryptos-macos-build` inside that VM;
 `/mnt/lfs` holds the preserved partial build. Do not mistake its VM disk capacity
 for free physical Mac storage. The Mac had about 25 GiB free when work resumed;
 check host space before proceeding to the full desktop and ISO staging.
+
+## Resumable base ISO build on the Mac's Linux VM
+
+A smaller first milestone is a boot-validation ISO built from the KryptOS LFS
+base, without the Hyprland/Quickshell desktop. In the x86_64 Linux VM, run as the
+unprivileged owner of a prepared LFS tree, with passwordless sudo available:
+
+```sh
+LFS=/mnt/lfs OUT="$HOME/kryptos-base-dist" bash scripts/60-build-base-iso.sh
+```
+
+The pipeline reuses existing package checkpoints, stops on failure, and writes
+`build-status.txt` beside the resulting ISO. It installs into the LFS chroot,
+not the build host. The UEFI GRUB modules are built before their validation.
+After packaging, copy both `kryptos.iso` and `kryptos.iso.sha256` to a Mac
+folder, then run `scripts/47-test-macos-iso.sh <folder> headless`. Successful
+packaging/checksum verification does not prove a successful boot or desktop.
+
+To attach a Mac-side collector to an already-running base ISO build:
+
+```sh
+bash scripts/61-collect-macos-base-iso.sh
+```
+
+This waits for the Linux pipeline's READY status, copies the ISO/checksum into
+Mac `dist/x86_64`, verifies integrity, stops the `krypton` builder VM to free
+memory, then runs the headless QEMU smoke test. Check
+`dist/x86_64/mac-boot-status.txt` for the actual outcome. Base ISO contains no
+Hyprland/Quickshell; a serial-login PASS validates boot only.
+
+## Durable one-shot Mac runtime
+
+`python3 scripts/62-prepare-macos-jobs.py` prepares explicit launchd definitions
+under `~/Library/Application Support/KryptOS/iso-build/launchd`. It does not
+start anything. These definitions use KeepAlive=false so successful or failed
+builds are not silently restarted. Runtime scripts and logs stay outside
+Documents because launchd may not have access to that protected folder.
+
+The current Mac uses these jobs for VM, build, and collector respectively:
+`local.kryptos.build-vm`, `local.kryptos.base-build`, `local.kryptos.iso-collect`.
+The builder and collector prevent idle system sleep while working. Logout,
+shutdown, or deliberate service removal can still interrupt a build; resume
+from package checkpoints. Job files are not installed as login items.
+
+`dist/x86_64` links to the runtime artifact folder on this Mac. Its
+`mac-boot-status.txt` records connection failures and timestamped live phases.
+A saved RUNNING entry alone does not prove a process is still alive; inspect
+the relevant launchd job and Linux logs when resuming after interruption.

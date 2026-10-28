@@ -29,6 +29,18 @@ find_src() {
     printf '%s\n' "$hit"
 }
 
+# Patches are not tar archives. Keep their lookup separate from find_src.
+find_patch() {
+    local prefix="$1" hit="" candidate
+    for candidate in "$LFS/sources/$prefix"*.patch; do
+        [ -f "$candidate" ] || continue
+        [ -z "$hit" ] || die "multiple patches match '$prefix' in $LFS/sources"
+        hit="$candidate"
+    done
+    [ -n "$hit" ] || die "patch not found for '$prefix' in $LFS/sources"
+    printf '%s\n' "$hit"
+}
+
 # extract_to <workdir> <tarball>  → extracts and echoes the created dir
 extract_to() {
     local work="$1" tarball="$2" before after

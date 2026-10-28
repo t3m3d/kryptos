@@ -8,7 +8,7 @@ LOG="${LOG:-$DIST/iso-smoke.log}"
 mkdir -p "$DIST"
 rm -f "$LOG"
 
-MEM="${MEM:-8192}" scripts/45-boot-iso.sh "$DIST" >"$LOG" 2>&1 &
+MEM="${MEM:-8192}" bash scripts/45-boot-iso.sh "$DIST" >"$LOG" 2>&1 &
 qemu_pid=$!
 cleanup() {
     kill "$qemu_pid" 2>/dev/null || true

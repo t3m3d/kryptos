@@ -22,7 +22,7 @@ b_ianaetc() { into iana-etc-; cp services protocols /etc; }
 # --- 8.5 glibc (final) ---
 b_glibc() {
     into glibc-
-    patch -Np1 -i "$(find_src glibc-2.40-fhs)"
+    patch -Np1 -i "$(find_patch glibc-2.40-fhs)"
     mkdir -v build; cd build
     echo "rootsbindir=/usr/sbin" > configparms
     ../configure --prefix=/usr --disable-werror --enable-kernel=4.19 \
@@ -73,7 +73,7 @@ EOF
 b_zlib()  { into zlib-; ./configure --prefix=/usr; make; make install; rm -fv /usr/lib/libz.a; }
 b_bzip2() {
     into bzip2-
-    patch -Np1 -i "$(find_src bzip2-1.0.8-install_docs)"
+    patch -Np1 -i "$(find_patch bzip2-1.0.8-install_docs)"
     sed -i 's@\(ln -s -f \)$(PREFIX)/bin/@\1@' Makefile
     sed -i "s@(PREFIX)/man@(PREFIX)/share/man@g" Makefile
     make -f Makefile-libbz2_so; make clean
@@ -359,7 +359,7 @@ PY
 # --- 8.55..8.62 core userland ---
 b_coreutils() {
     into coreutils-
-    patch -Np1 -i "$(find_src coreutils-9.5-i18n)"
+    patch -Np1 -i "$(find_patch coreutils-9.5-i18n)"
     autoreconf -fiv
     FORCE_UNSAFE_CONFIGURE=1 ./configure --prefix=/usr --enable-no-install-program=kill,uptime
     make; make install
@@ -391,7 +391,7 @@ b_iproute2() {
 }
 b_kbd() {
     into kbd-
-    patch -Np1 -i "$(find_src kbd-2.6.4-backspace)"
+    patch -Np1 -i "$(find_patch kbd-2.6.4-backspace)"
     sed -i '/RESIZECONS_PROGS=/s/yes/no/' configure
     sed -i 's/resizecons.8 //' docs/man/man8/Makefile.in
     ./configure --prefix=/usr --disable-vlock

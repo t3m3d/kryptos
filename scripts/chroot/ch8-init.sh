@@ -107,7 +107,7 @@ PY
 # --- 8.x sysvinit ---
 b_sysvinit() {
     into sysvinit-
-    patch -Np1 -i "$(find_src sysvinit-3.10-consolidated)"
+    patch -Np1 -i "$(find_patch sysvinit-3.10-consolidated)"
     make || return
     make install || return
 }

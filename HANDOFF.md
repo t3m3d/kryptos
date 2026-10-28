@@ -105,3 +105,95 @@ post-boot network checks and separately start Hyprland.
   QEMU argument selection tested with a fake executable; no KryptOS ISO boot
   claimed. The actual ISO still must be built from completed x86 Linux tree.
 - Host has ~25 GiB free. Full desktop build may need additional host storage.
+
+## Local x86 ISO pipeline (2026-10-22)
+
+- Cross-toolchain recovery from October 8 completed successfully: kernel headers,
+  glibc, and libstdc++ installed. Temporary-tools compilation resumed October 22.
+- Disabled unused `containerd.user/system` provisioning in local Lima `krypton`
+  to avoid a startup download stall. VM remains x86_64, six CPUs, 10 GiB RAM.
+- Fixed patch lookup: ch8/ch8-init previously passed `.patch` prefixes to
+  tar-archive-only `find_src`. New `find_patch` rejects missing/ambiguous patches.
+  Regression tests cover patch lookup and failure checkpoint handling.
+- Added `scripts/60-build-base-iso.sh`: Linux x86_64 pipeline for temporary
+  tools, ch7, final base, network, kernel, UEFI GRUB, session diagnostics, ISO
+  packaging and checksum verification. Stops on errors; existing package
+  checkpoints allow resuming. Does not build the Hyprland/Quickshell desktop.
+- Pipeline running under nohup in the local VM, waiting for the already-active
+  temporary-tools process before continuing. Monitor with:
+
+```sh
+limactl shell krypton -- sh -c 'tail -30 "$HOME/kryptos-base-build.log"'
+# Determine actual guest HOME with: limactl shell krypton -- printenv HOME
+# Log is $HOME/kryptos-base-build.log; status/ISO under $HOME/kryptos-base-dist.
+```
+
+- No ISO or QEMU boot success claimed. First milestone is a base boot-validation
+  ISO; desktop remains a separate build/test step. Mac now has ~80 GiB free.
+
+- Core source manifest verified in full, including the previously missing
+  man-db archive fetched from the LFS mirror. UEFI and DHCP sources available.
+- `scripts/61-collect-macos-base-iso.sh` attaches to the running pipeline. When
+  READY, it copies ISO/checksum to Mac `dist/x86_64`, verifies the checksum,
+  stops the builder VM to release RAM, and runs the headless Mac QEMU test.
+  Its local status is `dist/x86_64/mac-boot-status.txt`; log is
+  `dist/x86_64/collection.log`. It stops on build/transfer/boot failure.
+- Fixed serial-smoke launcher to invoke 45 with bash, since that tracked script
+  lacks executable permissions. Fixture integration covers collection, smoke
+  success, and failed-build gating. A fixture PASS is not a real guest boot.
+- Neither ISO packaging nor actual boot has completed at this handoff.
+
+## Continued Linux validation (2026-10-22)
+
+- Temporary tools progressed through m4, ncurses, and Bash; coreutils is next.
+- dhcpcd 10.2.2 configured and compiled separately on the x86 Linux build host
+  with the same privilege-separation configuration as ch21. Upstream `make test`
+  passed, installation into an isolated DESTDIR succeeded, and the staged
+  executable reports `INET ARP ARPing IPv4LL INET6 DHCPv6 AUTH PRIVSEP`.
+- Validation tree/logs are under guest `$HOME/kryptos-network-validation`.
+  No daemon was started and the VM's network configuration was not changed.
+  This proves a Linux host build, not the final LFS-target build or a DHCP lease.
+- Linux base-ISO pipeline remains queued behind temporary tools; Mac collector
+  remains active, waiting for actual ISO output. No ISO/QEMU success yet.
+
+## Runtime blocker repair (2026-10-27)
+
+- Confirmed GCC pass 2 completed on October 22. Build had reached ch7/gettext
+  before VM shutdown; no package failure was recorded at that stop.
+- Recovered the VM, removed an orphaned QEMU process after requesting a clean
+  guest shutdown, and resumed from completed checkpoints.
+- Replaced `launchctl submit` jobs: that interface set KeepAlive, causing
+  unwanted restarts. New explicit plists use RunAtLoad=true, KeepAlive=false.
+  They are loaded one-shot jobs, not recurring tasks or login items.
+- macOS launchd logs confirmed collector spawn failure opening stdout under
+  Documents: `Operation not permitted`. Moved runtime scripts, logs, job
+  definitions, and artifacts into the user-owned directory:
+  `~/Library/Application Support/KryptOS/iso-build`.
+- `scripts/62-prepare-macos-jobs.py` reproduces those definitions and copies
+  scripts atomically. It prepares files only, never loads or stops jobs.
+- Three launchd jobs verified running: `local.kryptos.build-vm`,
+  `local.kryptos.base-build`, `local.kryptos.iso-collect`. Builder and collector
+  hold idle-sleep assertions while active. A reboot/logout still ends the run;
+  package checkpoints remain the recovery mechanism.
+- `dist/x86_64` now links to runtime `dist/x86_64`; prior logs preserved under
+  `dist/x86_64.before-launchd-*`. `dist/active-macos-run.txt` records the runtime.
+- Fixed status handling: collector creates its trap before connecting; a failed
+  connection replaces stale WAITING. Polls carry timestamps; interrupted build
+  phases are recorded. Optional dependency PIDs are validated against cmdline.
+- Fixed ch7 symlink reruns with GNU ln -T, avoiding nested `/var/run/run` links.
+- Tests cover stale status on connection failure, one-shot plist properties,
+  unprotected runtime paths, and safe atomic script replacement. Existing
+  network/build/desktop regressions also pass.
+- Current actual stage: ch7/gettext. No ISO build or QEMU boot success claimed.
+
+Read current artifact status with:
+
+```sh
+cat dist/x86_64/mac-boot-status.txt
+```
+
+Inspect services with `launchctl print gui/$(id -u)/<label>`. Definitions live
+under the runtime `launchd/` folder. For a fresh load, bootstrap the VM plist,
+wait until `limactl shell krypton -- true` works, then bootstrap builder and
+collector plists. For already-loaded inactive jobs use `launchctl kickstart`
+instead. Do not use `launchctl submit` for these one-shot jobs.
