@@ -46,6 +46,8 @@ URLS=(
   "https://github.com/llvm/llvm-project/releases/download/llvmorg-19.1.4/cmake-19.1.4.src.tar.xz"
   "https://github.com/llvm/llvm-project/releases/download/llvmorg-19.1.4/third-party-19.1.4.src.tar.xz"
   "https://archive.mesa3d.org/mesa-24.3.4.tar.xz"
+  # glslangValidator: Mesa requires it when building the RADV (AMD Vulkan) driver
+  "https://github.com/KhronosGroup/glslang/archive/refs/tags/15.1.0.tar.gz"
   # --- input / session (sysvinit: seatd, no logind) ---
   "https://www.freedesktop.org/software/libevdev/libevdev-1.13.3.tar.xz"
   "http://bitmath.org/code/mtdev/mtdev-1.1.6.tar.bz2"

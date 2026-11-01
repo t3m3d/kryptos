@@ -71,6 +71,17 @@ exec-once = qs -c kryptos -d
 exec-once = foot
 EOF
 
+# Normal user for desktop and day-to-day work. Idempotent: this script has no
+# step marker and runs on every pipeline pass.
+for group in video input audio tty; do
+    getent group "$group" >/dev/null || groupadd --system "$group"
+done
+if ! id kryptos >/dev/null 2>&1; then
+    useradd -m -s /bin/bash -G video,input,audio,tty -c 'KryptOS user' kryptos
+fi
+install -d -m755 -o kryptos -g kryptos /home/kryptos
+install -d -m700 -o kryptos -g kryptos /home/kryptos/.config
+
 # Keep tty1 at a usable shell prompt. Start desktop manually with start-hypr.
 cat > /root/.bash_profile <<"EOF"
 [ -f /etc/profile ] && . /etc/profile

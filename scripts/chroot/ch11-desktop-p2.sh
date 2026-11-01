@@ -51,6 +51,15 @@ b_llvm() {
     ninja install
 }
 
+# --- glslang (Mesa needs glslangValidator for the RADV Vulkan driver) ---
+b_glslang() {
+    into glslang-
+    cmake -S . -B build -G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release \
+        -DENABLE_OPT=OFF -DBUILD_EXTERNAL=OFF -DBUILD_TESTING=OFF -DENABLE_SPIRV=ON
+    cmake --build build
+    cmake --install build
+}
+
 # --- Mesa (VM/software renderers plus AMD radeonsi/RADV on x86_64) ---
 b_mesa() {
     into mesa-24.3.4
@@ -109,5 +118,6 @@ step d_markupsafe   b_markupsafe
 step d_mako         b_mako
 step d_pyyaml       b_pyyaml
 step d_llvm         b_llvm
+step d_glslang      b_glslang
 step d_mesa         b_mesa
 msg "desktop Phase 2 done — next: input/session + hypr stack."
