@@ -13,7 +13,7 @@ import tempfile
 
 HOST_SCRIPTS = (
     '43-verify-boot-artifact.sh', '45-boot-iso.sh', '46-smoke-iso.sh',
-    '47-test-macos-iso.sh', '61-collect-macos-base-iso.sh',
+    '47-test-macos-iso.sh', '61-collect-macos-base-iso.sh', '63-retest-macos-iso.sh',
 )
 
 

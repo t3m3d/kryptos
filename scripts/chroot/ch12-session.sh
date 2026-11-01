@@ -6,6 +6,12 @@ set -uo pipefail
 export LFS=/ KRYPTOS_ROOT=/root/kryptos
 source /root/kryptos/lib/build.sh
 
+# The sysvinit consolidated patch drops the pidof symlink, but the lfs
+# bootscripts' init-functions call pidof when stopping daemons. killall5
+# dispatches to its pidof implementation when invoked by that name.
+[ -e /usr/bin/pidof ] || ln -sfv ../sbin/killall5 /usr/bin/pidof
+/usr/bin/pidof 1 >/dev/null
+
 # Hardware-aware launcher. Prefer AMDGPU when multiple DRM cards exist.
 install -d /usr/local/bin
 install -m755 /root/kryptos/config/start-hypr /usr/local/bin/start-hypr

@@ -16,16 +16,17 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-elapsed=0
-while kill -0 "$qemu_pid" 2>/dev/null && [ "$elapsed" -lt "$TIMEOUT" ]; do
+started=$SECONDS
+while kill -0 "$qemu_pid" 2>/dev/null && [ "$((SECONDS - started))" -lt "$TIMEOUT" ]; do
+    elapsed=$((SECONDS - started))
     if grep -q 'kryptos login:' "$LOG" 2>/dev/null; then
         echo "[smoke] PASS: KryptOS reached serial login in ${elapsed}s"
         exit 0
     fi
     sleep 1
-    elapsed=$((elapsed + 1))
 done
 
+elapsed=$((SECONDS - started))
 echo "[smoke] FAIL: no KryptOS serial login after ${elapsed}s" >&2
 tail -80 "$LOG" >&2 || true
 exit 1

@@ -255,6 +255,17 @@ b_openssl() {
     sed -i '/INSTALL_LIBS/s/libcrypto.a libssl.a//' Makefile
     make MANSUFFIX=ssl install
 }
+# pkg-config is required by kmod's compression-library checks and by later
+# Meson builds. Install it here, before those consumers run.
+b_pkgconf() {
+    into pkgconf-
+    ./configure --prefix=/usr --disable-static --docdir=/usr/share/doc/pkgconf-2.3.0
+    make
+    make install
+    ln -sfv pkgconf /usr/bin/pkg-config
+    ln -sfv pkgconf.1 /usr/share/man/man1/pkg-config.1
+}
+
 b_kmod() {
     into kmod-
     ./configure --prefix=/usr --sysconfdir=/etc --disable-manpages \
@@ -458,6 +469,7 @@ step intltool    b_intltool
 step autoconf    b_autoconf
 step automake    b_automake
 step openssl     b_openssl
+step pkgconf     b_pkgconf
 step kmod        b_kmod
 step elfutils    b_elfutils
 step libffi      b_libffi

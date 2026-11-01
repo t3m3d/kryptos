@@ -44,7 +44,7 @@ VARS_COPY="${OVMF_VARS_COPY:-$DIST/OVMF_VARS.fd}"
 cp "$OVMF_VARS" "$VARS_COPY"
 
 exec "$QEMU_BIN" \
-    -M q35 \
+    -M "${QEMU_MACHINE:-q35}" \
     -cpu max \
     -accel "${QEMU_ACCEL:-tcg,thread=multi}" \
     -smp "${SMP:-4}" \
@@ -57,5 +57,5 @@ exec "$QEMU_BIN" \
     -device virtio-net-pci,netdev=n0 \
     -device virtio-vga \
     -display "${QEMU_DISPLAY:-none}" \
-    -monitor none \
+    -monitor "${QEMU_MONITOR:-none}" \
     -serial stdio

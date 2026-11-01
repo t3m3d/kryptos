@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Resume a Linux x86_64 LFS tree through a base UEFI live ISO.
-# Desktop packages are intentionally a later milestone; this validates boot.
+# Resume a Linux x86_64 LFS tree through a UEFI live ISO with the Hyprland
+# desktop (Wayland, Mesa, foot, Quickshell). Resumable via step markers.
 # Run as the unprivileged owner of $LFS, with passwordless sudo for chroot.
 #   LFS=/mnt/lfs OUT="$HOME/kryptos-base-dist" bash scripts/60-build-base-iso.sh
 set -euo pipefail
@@ -54,12 +54,16 @@ run() {
 # Additional sources required beyond the core LFS source set.
 run fetch-uefi bash scripts/53-fetch-uefi.sh
 run fetch-network bash scripts/56-fetch-network.sh
+run fetch-desktop bash scripts/50-fetch-desktop.sh
+run fetch-quickshell bash scripts/54-fetch-quickshell.sh
 run temporary-tools bash scripts/20-temp-tools.sh
-for inner in ch7.sh ch8.sh ch8-init.sh ch8b.sh ch9.sh ch21-network.sh ch10-kernel.sh ch18-grub-efi.sh ch17-uefi.sh ch12-session.sh; do
+for inner in ch7.sh ch8.sh ch8-init.sh ch8b.sh ch9.sh ch21-network.sh ch10-kernel.sh ch18-grub-efi.sh ch17-uefi.sh \
+    ch11-desktop-p1.sh ch11-desktop-p2.sh ch11-desktop-p3.sh ch11-desktop-p5-xcursor.sh ch11-desktop-p4.sh \
+    ch14-foot.sh ch19-quickshell.sh ch12-session.sh; do
     run "$inner" sudo -n env LFS="$LFS" bash scripts/30-enter-chroot.sh "$inner"
 done
 run package-iso sudo -n env LFS="$LFS" OUT="$OUT" bash scripts/44-make-iso.sh
 run verify-iso bash scripts/43-verify-boot-artifact.sh "$OUT" iso
-printf 'READY base ISO only; boot and desktop unverified date=%s\n' "$(date -u +%FT%TZ)" > "$STATUS"
-echo "Base boot-validation ISO: $OUT/kryptos.iso"
-echo 'No Hyprland/Quickshell desktop included. Copy ISO and checksum to Mac; run 47-test-macos-iso.sh.'
+printf 'READY desktop ISO built; visible desktop unverified date=%s\n' "$(date -u +%FT%TZ)" > "$STATUS"
+echo "Desktop ISO: $OUT/kryptos.iso"
+echo 'Copy ISO and checksum to Mac; run 47-test-macos-iso.sh, log in as root, then start-hypr.'

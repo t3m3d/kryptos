@@ -11,7 +11,10 @@ bash "$REPO/scripts/43-verify-boot-artifact.sh" "$DIST" iso
 command -v "${QEMU_BIN:-qemu-system-x86_64}" >/dev/null || { echo 'Install QEMU before testing.' >&2; exit 1; }
 export QEMU_ACCEL='tcg,thread=multi'
 export MEM="${MEM:-8192}"
-export SMP="${SMP:-4}"
+# Verified on Apple Silicon: four emulated CPUs stalled during early userspace.
+# Keep overrides available for diagnostics and other host/QEMU combinations.
+export SMP="${SMP:-1}"
+export QEMU_MACHINE="${QEMU_MACHINE:-q35,hpet=off}"
 cd "$REPO"
 if [ "$MODE" = headless ]; then
     export QEMU_DISPLAY=none
@@ -20,5 +23,5 @@ if [ "$MODE" = headless ]; then
 fi
 export QEMU_DISPLAY=cocoa
 echo 'x86_64 UEFI boot under software emulation; first boot may take several minutes.'
-echo 'At graphical tty1, run start-hypr. Serial login alone does not prove desktop rendering.'
+echo 'Base ISO provides a console. For desktop-enabled images, run start-hypr from tty1.'
 exec bash scripts/45-boot-iso.sh "$DIST"

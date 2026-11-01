@@ -1,5 +1,48 @@
 # KryptOS active handoff
 
+## Mac ISO boot test (2026-10-31)
+
+**Verified completion:** real macOS QEMU UEFI boot reached `kryptos login:`
+in 332 seconds with SMP=1 and q35,hpet=off, TCG, 8192 MiB RAM. Serial evidence
+is dist/x86_64/iso-smoke.log; runtime status records PASS. Test guest exited
+after detection, builder VM remains off. Mac launcher defaults now match the
+working configuration. Base ISO only; desktop and actual DHCP lease unverified.
+Syslog startup emitted `pidof: command not found`; address before release.
+
+- Base x86_64 ISO packaged, copied to Mac dist/x86_64, checksum verified.
+- First real UEFI QEMU boot unpacked rootfs and entered SysV init, then stalled
+  during udev startup with guest timestamps frozen at 69.636895. No login PASS.
+- Failed log retained as iso-smoke.before-retest-* in runtime dist (also
+  /private/tmp/kryptos-iso-smoke-hpet-on-20261031.log).
+- Added QEMU_MACHINE override to launcher and 63-retest-macos-iso.sh to retest
+  the collected ISO without rebuilding or restarting Linux. Runtime copies
+  refreshed; local.kryptos.iso-boot-retry tested q35,hpet=off diagnostically.
+  HPET alone was not sufficient. Builder VM is intentionally off.
+- Only an actual kryptos login prompt counts as success. Desktop not included.
+
+- HPET-off retry also stalled (during rootfs extraction). Its serial log was
+  preserved by the retest wrapper. Successful test ran under
+  local.kryptos.iso-boot-singlecpu, with SMP=1, q35,hpet=off, and a local HMP
+  socket at /private/tmp/kryptos-iso-monitor.sock. Test process has exited.
+  46 now measures elapsed wall seconds instead of
+  counting sleep iterations, so host scheduling delays cannot stretch timeout.
+
+## Mac build recovery (2026-10-29)
+
+- Final GCC, OpenSSL, and earlier final-system packages completed locally.
+- kmod stopped because pkg-config was scheduled later in ch8-init. Moved the
+  existing pkgconf recipe/checkpoint into ch8 immediately before kmod, also
+  making it available to later Meson builds. Existing checkpoints are retained.
+- Updated guest workspace scripts and resumed the one-shot builder/collector.
+- All 14 offline regressions passed; these do not prove ISO boot. Check current
+  runtime status and live processes before reporting progress or completion.
+
+2026-10-30: ch8 final packages and util-linux completed. udev compiled but its
+installation stopped at missing pkg-config metadata: systemd 256 creates those
+files as explicit Ninja targets. Added libudev.pc and udev.pc to the build target
+list and verified both generate in the actual target chroot. Failure logs saved
+with before-pc-target-fix suffix; resumed udev from the last completed package.
+
 **Status (2026-08-01): fresh x86_64 UEFI live ISO boots Hyprland and Quickshell.**
 
 ## Verified

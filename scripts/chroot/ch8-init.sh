@@ -22,16 +22,6 @@ b_utillinux() {
     make install || return
 }
 
-# --- 8.x pkgconf (provides pkg-config; meson/udev need it to find libcap) ---
-b_pkgconf() {
-    into pkgconf-
-    ./configure --prefix=/usr --disable-static --docdir=/usr/share/doc/pkgconf-2.3.0
-    make || return
-    make install || return
-    ln -sfv pkgconf   /usr/bin/pkg-config
-    ln -sfv pkgconf.1 /usr/share/man/man1/pkg-config.1
-}
-
 # --- 8.x udev (built from the systemd source, sysvinit method) ---
 b_udev() {
     into systemd-
@@ -61,7 +51,10 @@ PY
     if [ -x /opt/host-ninja/ninja ]; then
         ninja_cmd=(env LD_LIBRARY_PATH=/opt/host-ninja/lib /opt/host-ninja/ninja -v)
     fi
+    # systemd 256 generates these metadata files as explicit Ninja targets,
+    # rather than during Meson setup. The library targets do not pull them in.
     "${ninja_cmd[@]}" udevadm systemd-hwdb \
+        src/libudev/libudev.pc src/udev/udev.pc \
         $(grep -o -E '^build (rules.d|hwdb.d)/[^:]*' build.ninja | awk '{ print $2 }') \
         $(realpath libudev.so --relative-to .) \
         $udev_helpers
@@ -73,8 +66,8 @@ PY
     ln      -svfn  ../bin/udevadm           /usr/sbin/udevd
     cp      -av    libudev.so{,*[0-9]}      /usr/lib/
     install -vm644 ../src/libudev/libudev.h /usr/include/
-    install -vm644 src/libudev/*.pc         /usr/lib/pkgconfig/
-    install -vm644 src/udev/*.pc            /usr/share/pkgconfig/
+    install -vm644 src/libudev/libudev.pc   /usr/lib/pkgconfig/
+    install -vm644 src/udev/udev.pc         /usr/share/pkgconfig/
     install -vm644 ../src/udev/udev.conf    /etc/udev/
     install -vm644 rules.d/* ../rules.d/README /usr/lib/udev/rules.d/
     install -vm644 $(find ../rules.d/*.rules -not -name '*power-switch*') /usr/lib/udev/rules.d/
@@ -110,11 +103,15 @@ b_sysvinit() {
     patch -Np1 -i "$(find_patch sysvinit-3.10-consolidated)"
     make || return
     make install || return
+    # The consolidated patch comments out the pidof symlink, but the lfs
+    # bootscripts' init-functions call pidof when stopping daemons. killall5
+    # dispatches to its pidof implementation when invoked by that name.
+    ln -sfv ../sbin/killall5 /usr/bin/pidof
+    /usr/bin/pidof 1 >/dev/null
 }
 
 msg "ch8 init tail: util-linux final, udev, sysvinit"
 step util-linux-final b_utillinux
-step pkgconf          b_pkgconf
 step udev             b_udev
 step sysvinit         b_sysvinit
 msg "ch8 init tail done — next: ch8b.sh (fsck/syslog), then ch9 config + ch10 kernel."

@@ -287,16 +287,19 @@ DHCP server, GRUB boot, or target Linux build.
 
 ## x86_64 ISO testing on macOS
 
-Once a real x86_64 `kryptos.iso` and `kryptos.iso.sha256` are in `dist/`:
+The local base ISO in `dist/x86_64` reached serial login in macOS QEMU on
+2026-10-31 (332 seconds). It does not include Hyprland/Quickshell. Launch it:
 
 ```sh
-./scripts/47-test-macos-iso.sh dist graphical
-./scripts/47-test-macos-iso.sh dist headless
+./scripts/47-test-macos-iso.sh dist/x86_64 graphical
+./scripts/47-test-macos-iso.sh dist/x86_64 headless
 ```
 
 The launcher checks the checksum, uses Homebrew QEMU's UEFI firmware and
-software x86 emulation, and gives the guest 8 GiB RAM. Graphical mode uses Cocoa
-and virtio VGA; start Hyprland from tty1. Headless mode allows 600 seconds to
+software x86 emulation, and gives the guest 8 GiB RAM, one CPU, and HPET disabled.
+These defaults match the successful test; four-CPU attempts stalled during boot.
+Graphical mode uses Cocoa and virtio VGA. Images containing desktop packages
+can start Hyprland from tty1. Headless mode allows 600 seconds to
 reach serial login. Stop other large VMs before booting the ISO. Apple Silicon
 cannot use HVF to accelerate an x86 guest; builds and boot tests are slower.
 
