@@ -39,6 +39,9 @@ URLS=(
   "https://gitlab.freedesktop.org/wayland/wayland-protocols/-/releases/1.38/downloads/wayland-protocols-1.38.tar.xz"
   "https://xkbcommon.org/download/libxkbcommon-1.7.0.tar.xz"
   "https://dri.freedesktop.org/libdrm/libdrm-2.4.123.tar.xz"
+  # libdrm's Intel backend (iris needs libdrm_intel) requires pciaccess.
+  # sha256 4af43444b38adb5545d0ed1c2ce46d9608cc47b31c2387fc5181656765a6fa76
+  "https://xorg.freedesktop.org/releases/individual/lib/libpciaccess-0.18.1.tar.xz"
   "https://github.com/vcrhonek/hwdata/archive/v0.388/hwdata-0.388.tar.gz"
   "https://gitlab.freedesktop.org/emersion/libdisplay-info/-/releases/0.2.0/downloads/libdisplay-info-0.2.0.tar.xz"
   # --- graphics (software GL for the VM) ---

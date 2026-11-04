@@ -47,7 +47,10 @@ b_wayland()   { mesonb wayland-1 -Ddocumentation=false -Dtests=false -Ddtd_valid
 b_wlproto()   { mesonb wayland-protocols- -Dtests=false; }
 # xkbregistry pulls libxml2 + is only layout enumeration (Hyprland doesn't need it)
 b_xkbcommon() { mesonb libxkbcommon- -Denable-docs=false -Denable-x11=false -Denable-wayland=true -Denable-xkbregistry=false; }
-b_libdrm()    { mesonb libdrm- -Dudev=true -Dvalgrind=disabled; }
+# libdrm_intel needs pciaccess; without it Mesa's iris driver cannot be built and
+# Intel machines fall back to software rendering.
+b_libpciaccess() { mesonb libpciaccess- ; }
+b_libdrm()    { mesonb libdrm- -Dudev=true -Dvalgrind=disabled -Dintel=true -Dradeon=true -Damdgpu=true -Dtests=false; }
 b_hwdata()    { into hwdata-; ./configure --prefix=/usr --disable-blacklist; make; make install; }
 b_displayinfo(){ mesonb libdisplay-info- ; }
 
@@ -72,6 +75,7 @@ step d_glib         b_glib
 step d_pixman       b_pixman
 step d_wayland      b_wayland
 step d_wayland-protocols b_wlproto
+step d_libpciaccess b_libpciaccess
 step d_libdrm       b_libdrm
 step d_hwdata       b_hwdata
 step d_libdisplay-info b_displayinfo

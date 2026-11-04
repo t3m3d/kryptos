@@ -101,7 +101,7 @@ sudo -E bash scripts/30-enter-chroot.sh ch8b.sh
 sudo -E bash scripts/30-enter-chroot.sh ch9.sh
 sudo -E bash scripts/30-enter-chroot.sh ch21-network.sh
 sudo -E bash scripts/30-enter-chroot.sh ch10-kernel.sh
-sudo -E bash scripts/30-enter-chroot.sh ch20-hardware-amd.sh
+sudo -E bash scripts/30-enter-chroot.sh ch20-hardware-gpu.sh
 sudo -E bash scripts/30-enter-chroot.sh ch15-devtools.sh
 sudo -E bash scripts/30-enter-chroot.sh ch16-ssh.sh
 sudo -E bash scripts/30-enter-chroot.sh ch17-uefi.sh
@@ -129,8 +129,8 @@ TIMEOUT=240 MEM=8192 ./scripts/46-smoke-iso.sh dist
 `44-make-iso.sh` creates `dist/kryptos.iso` plus `dist/kryptos.iso.sha256`.
 `46-smoke-iso.sh` boots it with UEFI QEMU and requires a serial login prompt.
 The live ISO currently includes
-Git, build tools, Dropbear SSH, UEFI support, Hyprland with Quickshell, AMD
-CPU/GPU firmware, and a manual disk installer.
+Git, build tools, Dropbear SSH, UEFI support, Hyprland with Quickshell, AMD and
+Intel GPU firmware, and a manual disk installer.
 
 Default live login:
 
@@ -154,6 +154,17 @@ force a mode with `--uefi` or `--bios`:
 ```sh
 kryptos-install --yes /dev/sda --uefi
 kryptos-install --yes /dev/sda --bios
+```
+
+The image carries firmware for AMD (`amdgpu`) and Intel (`i915`) graphics and
+both Mesa drivers, so one ISO boots on either. `--gpu` decides which firmware
+gets written to the target; it defaults to detecting the GPU the live system is
+running on, and prunes the other vendor's payload (about 110 MB of AMD firmware)
+to save disk. Pass `--gpu=amd`, `--gpu=intel` or `--gpu=both` to override, which
+is useful when installing to a machine other than the one you booted.
+
+```sh
+kryptos-install --yes /dev/sda --gpu=intel
 ```
 
 Hyper-V Generation 2 is the preferred UEFI path. Generation 1 remains BIOS

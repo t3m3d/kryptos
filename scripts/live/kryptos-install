@@ -7,7 +7,7 @@ export PATH=/usr/sbin:/usr/bin:/sbin:/bin
 
 usage() {
     cat <<'EOF'
-usage: kryptos-install --yes /dev/sdX [--uefi|--bios]
+usage: kryptos-install --yes /dev/sdX [--uefi|--bios] [--gpu auto|amd|intel|both]
 
 WARNING: destroys the target disk. Hyper-V target is often /dev/sda.
 Check disks first with: cat /proc/partitions
@@ -15,12 +15,45 @@ Check disks first with: cat /proc/partitions
 Mode defaults from current boot:
   /sys/firmware/efi present -> UEFI/GPT
   otherwise                 -> BIOS/MBR
+
+GPU firmware defaults to auto: the installer reads the graphics device it is
+running on and keeps only that vendor's firmware. Both driver stacks stay
+installed either way, so this only affects disk usage.
+  auto   keep the detected vendor's firmware (both when none is detected)
+  amd    amdgpu
+  intel  i915
+  both   keep both sets
 EOF
 }
 
-[ "${1:-}" = "--yes" ] || { usage; exit 2; }
-DISK="${2:-}"
-MODE="${3:-auto}"
+YES=""
+DISK=""
+MODE=auto
+GPU=auto
+EXTRA=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --gpu)
+            [ $# -ge 2 ] || { echo "--gpu needs a value: auto|amd|intel|both" >&2; exit 2; }
+            GPU="$2"; shift 2 ;;
+        --gpu=*)
+            GPU="${1#--gpu=}"; shift ;;
+        --uefi|--bios)
+            MODE="$1"; shift ;;
+        *)
+            if [ -z "$YES" ]; then YES="$1"
+            elif [ -z "$DISK" ]; then DISK="$1"
+            else EXTRA="$1"
+            fi
+            shift ;;
+    esac
+done
+case "$GPU" in
+    auto|amd|intel|both) ;;
+    *) echo "refusing unknown --gpu value: $GPU (auto|amd|intel|both)" >&2; exit 2 ;;
+esac
+[ "$YES" = "--yes" ] || { usage; exit 2; }
+[ -z "$EXTRA" ] || { usage; exit 2; }
 [ -n "$DISK" ] || { usage; exit 2; }
 [ -b "$DISK" ] || { echo "target is not a block device: $DISK" >&2; exit 1; }
 case "$DISK" in
@@ -132,6 +165,40 @@ echo "[install] copy immutable ISO rootfs"
 gzip -dc "$INSTALL_ROOTFS" | \
     tar --xattrs --acls --numeric-owner --warning=no-timestamp -xpf - -C "$MNT"
 
+# Both GPU vendors ship in the image so the ISO boots anywhere. Trim the one
+# this machine will never load; the drivers themselves stay installed.
+detect_gpu() {
+    local card vendor
+    for card in /sys/class/drm/card[0-9]*; do
+        [ -r "$card/device/vendor" ] || continue
+        vendor="$(cat "$card/device/vendor" 2>/dev/null)"
+        case "$vendor" in
+            0x1002) echo amd; return 0 ;;
+            0x8086) echo intel; return 0 ;;
+        esac
+    done
+    echo unknown
+}
+GPU_CHOICE="$GPU"
+if [ "$GPU_CHOICE" = auto ]; then
+    GPU_CHOICE="$(detect_gpu)"
+    case "$GPU_CHOICE" in
+        amd|intel) echo "[install] detected $GPU_CHOICE graphics; keeping its firmware" ;;
+        *) GPU_CHOICE=both
+           echo "[install] no AMD/Intel GPU detected; keeping both firmware sets" ;;
+    esac
+fi
+FW_ROOT="$MNT/usr/lib/firmware"
+[ -d "$FW_ROOT" ] || FW_ROOT=""
+case "$GPU_CHOICE" in
+    amd)   [ -z "$FW_ROOT" ] || rm -rf "$FW_ROOT/i915" ;;
+    intel) [ -z "$FW_ROOT" ] || rm -rf "$FW_ROOT/amdgpu" ;;
+esac
+if [ -n "$FW_ROOT" ]; then
+    printf '%s\n' "$GPU_CHOICE" > "$MNT/etc/kryptos-gpu"
+    du -sh "$FW_ROOT"/* 2>/dev/null | sed 's|^|[install] firmware |' || true
+fi
+
 mkdir -p "$MNT"/{dev,proc,sys,run,tmp,boot,mnt,media}
 [ "$MODE" = "--uefi" ] && mkdir -p "$MNT/boot/efi"
 chmod 1777 "$MNT/tmp"
@@ -213,4 +280,5 @@ if [ "$MODE" = "--uefi" ]; then
     echo "[install] verified EFI/BOOT/BOOTX64.EFI"
 fi
 
+echo "[install] GPU firmware kept: $GPU_CHOICE"
 echo "[install] done. Shut down, remove ISO, boot from disk."
