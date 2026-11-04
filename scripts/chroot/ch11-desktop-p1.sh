@@ -50,7 +50,7 @@ b_xkbcommon() { mesonb libxkbcommon- -Denable-docs=false -Denable-x11=false -Den
 # libdrm_intel needs pciaccess; without it Mesa's iris driver cannot be built and
 # Intel machines fall back to software rendering.
 b_libpciaccess() { mesonb libpciaccess- ; }
-b_libdrm()    { mesonb libdrm- -Dudev=true -Dvalgrind=disabled -Dintel=true -Dradeon=true -Damdgpu=true -Dtests=false; }
+b_libdrm()    { mesonb libdrm- -Dudev=true -Dvalgrind=disabled -Dintel=enabled -Dradeon=enabled -Damdgpu=enabled -Dtests=false; }
 b_hwdata()    { into hwdata-; ./configure --prefix=/usr --disable-blacklist; make; make install; }
 b_displayinfo(){ mesonb libdisplay-info- ; }
 
