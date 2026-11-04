@@ -1,0 +1,51 @@
+#!/bin/sh
+# D-Bus system bus. Started from rc2-5 as S20dbus, before kryptos-network.
+# The live root is unpacked into tmpfs on every boot, so /run and the
+# machine-id are (re)created here rather than assumed to exist.
+set -eu
+PIDFILE=/run/dbus/pid
+DAEMON=${DAEMON:-/usr/bin/dbus-daemon}
+
+case "${1:-}" in
+    start)
+        [ -x "$DAEMON" ] || { echo "KryptOS: missing dbus-daemon" >&2; exit 1; }
+        install -d -m755 -o messagebus -g messagebus /run/dbus 2>/dev/null \
+            || install -d -m755 /run/dbus
+        if [ ! -s /etc/machine-id ]; then
+            dbus-uuidgen > /etc/machine-id 2>/dev/null || \
+                dbus-uuidgen --ensure >/dev/null 2>&1 || true
+            chmod 444 /etc/machine-id 2>/dev/null || true
+        fi
+        if [ -f "$PIDFILE" ]; then
+            pid=$(cat "$PIDFILE" 2>/dev/null || true)
+            if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+                exit 0
+            fi
+            # A pid whose process is gone (build leftovers, a crash) makes the
+            # daemon refuse to start, so drop it before launching.
+            rm -f "$PIDFILE"
+        fi
+        # Do not create the pid file with '>' before the daemon runs: a failed
+        # start would then leave an empty file that blocks every retry.
+        if ! pid=$("$DAEMON" --system --fork --print-pid=1); then
+            echo "KryptOS: system bus failed to start" >&2
+            exit 1
+        fi
+        printf '%s\n' "$pid" > "$PIDFILE"
+        echo "KryptOS: system bus started (pid $pid)"
+        ;;
+    stop)
+        if [ -f "$PIDFILE" ]; then
+            kill "$(cat "$PIDFILE")" 2>/dev/null || true
+            rm -f "$PIDFILE"
+        fi
+        ;;
+    restart)
+        "$0" stop
+        exec "$0" start
+        ;;
+    *)
+        echo "usage: $0 {start|stop|restart}" >&2
+        exit 2
+        ;;
+esac

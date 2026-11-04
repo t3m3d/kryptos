@@ -28,6 +28,7 @@ class DesktopTests(unittest.TestCase):
         self.fake('id', 'echo 0')
         self.fake('flock', 'exit "${LOCK_STATUS:-0}"')
         self.env = dict(os.environ, PATH=str(self.bin)+':/usr/bin:/bin', STARTUP_TIMEOUT='1')
+        self.env.pop('DBUS_SESSION_BUS_ADDRESS', None)
 
     def tearDown(self):
         self.temp.cleanup()
@@ -78,6 +79,14 @@ class DesktopTests(unittest.TestCase):
         result = self.launch()
         self.assertEqual(result.returncode, 1)
         self.assertIn('no DRM device', result.stderr)
+
+    def test_session_bus_address_is_exported(self):
+        seen = self.root / 'bus-env'
+        self.fake('dbus-daemon', 'echo "unix:path=/fake/bus"')
+        self.fake('Hyprland', f'printf "%s" "$DBUS_SESSION_BUS_ADDRESS" > "{seen}"; exit 0')
+        result = self.launch()
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(seen.read_text(), 'unix:path=/fake/bus')
 
     def test_report_no_overwrite(self):
         report = self.root / 'report.txt'

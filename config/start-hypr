@@ -15,6 +15,15 @@ for socket in "$XDG_RUNTIME_DIR"/wayland-*; do
 done
 export XDG_SESSION_TYPE=wayland
 export LIBSEAT_BACKEND=builtin
+# Give the session a bus of its own. Hyprland publishes WAYLAND_DISPLAY and
+# friends through dbus-update-activation-environment; without an address that
+# call fails and no portal or notification daemon can be activated. Images
+# built without dbus simply skip this.
+if [ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ] && command -v dbus-daemon >/dev/null 2>&1; then
+    if bus_address=$(dbus-daemon --session --fork --print-address=1 2>/dev/null); then
+        [ -z "$bus_address" ] || export DBUS_SESSION_BUS_ADDRESS="$bus_address"
+    fi
+fi
 
 DRM_CARD=
 DRM_DRIVER=
@@ -62,8 +71,11 @@ case "$DRM_DRIVER" in
             esac
             [ -n "${LVP_ICD:-}" ] && [ -f "$LVP_ICD" ] && export VK_ICD_FILENAMES="$LVP_ICD"
         else
-            export MESA_LOADER_DRIVER_OVERRIDE=kms_swrast
-            export GALLIUM_DRIVER=llvmpipe
+            # No Vulkan loader: leave driver selection to Mesa, which falls
+            # back to kms_swrast on its own. Forcing the override here pairs
+            # kms_swrast with the wrong gallium driver and every EGL client
+            # (including Qt's wayland plugin) then fails to create a config.
+            unset MESA_LOADER_DRIVER_OVERRIDE GALLIUM_DRIVER
         fi
         ;;
     amdgpu)

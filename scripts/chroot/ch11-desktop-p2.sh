@@ -66,7 +66,8 @@ b_mesa() {
     rm -rf build
     local gallium="llvmpipe,virgl,zink" vulkan="swrast"
     if [ "$(uname -m)" = x86_64 ]; then
-        gallium+=",radeonsi"
+        # radeonsi (AMD) + iris (Intel) are both physical-hardware drivers.
+        gallium+=",radeonsi,iris"
         vulkan="amd,swrast"
     fi
     meson setup build --prefix=/usr --libdir=lib --buildtype=release \
@@ -85,7 +86,7 @@ b_mesa() {
     # Mesa installs one Gallium megadriver but does not create the DRI loader
     # symlinks this image needs. Keep Mesa's real dri_gbm backend intact and
     # point only DRI loader names at the megadriver.
-    local gl_path gl d dri_drivers="kms_swrast swrast virtio_gpu zink"
+    local gl_path gl d dri_drivers="kms_swrast swrast virtio_gpu zink iris"
     gl_path=$(find /usr/lib -maxdepth 1 -type f -name 'libgallium-*.so' -print -quit)
     if [ -z "$gl_path" ]; then
         echo "Mesa gallium megadriver was not installed" >&2
@@ -94,6 +95,7 @@ b_mesa() {
     gl=$(basename "$gl_path")
     mkdir -pv /usr/lib/dri /usr/lib/gbm
     [ "$(uname -m)" != x86_64 ] || dri_drivers+=" radeonsi"
+    [ "$(uname -m)" != x86_64 ] || test -e /usr/lib/dri/iris_dri.so
     for d in $dri_drivers; do
         ln -sfnvT "../$gl" "/usr/lib/dri/${d}_dri.so"
         [ "$(readlink "/usr/lib/dri/${d}_dri.so")" = "../$gl" ]
@@ -101,6 +103,7 @@ b_mesa() {
     if [ "$(uname -m)" = x86_64 ]; then
         llvm-config --targets-built | grep -qw AMDGPU
         pkg-config --exists libdrm_amdgpu
+        pkg-config --exists libdrm_intel
         test -e /usr/lib/libvulkan_radeon.so
     fi
     test -s /usr/lib/gbm/dri_gbm.so
