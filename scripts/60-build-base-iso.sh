@@ -59,7 +59,7 @@ run fetch-quickshell bash scripts/54-fetch-quickshell.sh
 run temporary-tools bash scripts/20-temp-tools.sh
 for inner in ch7.sh ch8.sh ch8-init.sh ch8b.sh ch9.sh ch21-network.sh ch10-kernel.sh ch18-grub-efi.sh ch17-uefi.sh \
     ch11-desktop-p1.sh ch11-desktop-p2.sh ch11-desktop-p3.sh ch11-desktop-p5-xcursor.sh ch11-desktop-p4.sh \
-    ch14-foot.sh ch19-quickshell.sh ch12-session.sh; do
+    ch13-tools.sh ch14-foot.sh ch19-quickshell.sh ch12-session.sh; do
     run "$inner" sudo -n env LFS="$LFS" bash scripts/30-enter-chroot.sh "$inner"
 done
 run package-iso sudo -n env LFS="$LFS" OUT="$OUT" bash scripts/44-make-iso.sh

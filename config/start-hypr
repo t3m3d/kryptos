@@ -46,17 +46,25 @@ case "$DRM_DRIVER" in
         # path automatically; forcing zink or kms_swrast makes EGL reject it.
         unset MESA_LOADER_DRIVER_OVERRIDE GALLIUM_DRIVER LIBGL_ALWAYS_SOFTWARE
         ;;
-    virtio_gpu|bochs_drm)
+    virtio_gpu|virtio-pci|bochs_drm)
         export WLR_NO_HARDWARE_CURSORS=1
         export WLR_RENDERER_ALLOW_SOFTWARE=1
-        export MESA_LOADER_DRIVER_OVERRIDE=zink
-        export GALLIUM_DRIVER=zink
-        case "$(uname -m)" in
-            aarch64|arm64) LVP_ICD=/usr/share/vulkan/icd.d/lvp_icd.aarch64.json ;;
-            x86_64)        LVP_ICD=/usr/share/vulkan/icd.d/lvp_icd.x86_64.json ;;
-            *)             LVP_ICD=$(ls /usr/share/vulkan/icd.d/lvp_icd*.json 2>/dev/null | head -1) ;;
-        esac
-        [ -n "${LVP_ICD:-}" ] && [ -f "$LVP_ICD" ] && export VK_ICD_FILENAMES="$LVP_ICD"
+        # zink renders through Vulkan, so it needs the loader. Images built
+        # without it must take Mesa's KMS software path instead of letting EGL
+        # discover the failure mid-startup.
+        if [ -e /usr/lib/libvulkan.so.1 ]; then
+            export MESA_LOADER_DRIVER_OVERRIDE=zink
+            export GALLIUM_DRIVER=zink
+            case "$(uname -m)" in
+                aarch64|arm64) LVP_ICD=/usr/share/vulkan/icd.d/lvp_icd.aarch64.json ;;
+                x86_64)        LVP_ICD=/usr/share/vulkan/icd.d/lvp_icd.x86_64.json ;;
+                *)             LVP_ICD=$(ls /usr/share/vulkan/icd.d/lvp_icd*.json 2>/dev/null | head -1) ;;
+            esac
+            [ -n "${LVP_ICD:-}" ] && [ -f "$LVP_ICD" ] && export VK_ICD_FILENAMES="$LVP_ICD"
+        else
+            export MESA_LOADER_DRIVER_OVERRIDE=kms_swrast
+            export GALLIUM_DRIVER=llvmpipe
+        fi
         ;;
     amdgpu)
         export LIBVA_DRIVER_NAME=radeonsi
