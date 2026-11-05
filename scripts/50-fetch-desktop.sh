@@ -95,6 +95,10 @@ URLS=(
   "https://codeberg.org/dnkl/foot/archive/1.18.1.tar.gz"
   "https://gitlab.freedesktop.org/emersion/grim/-/archive/v1.4.1/grim-v1.4.1.tar.gz"
   "https://github.com/dejavu-fonts/dejavu-fonts/releases/download/version_2_37/dejavu-fonts-ttf-2.37.tar.bz2"
+  # --- display manager + toolchain ---
+  "https://github.com/fairyglade/ly/archive/refs/tags/v1.5.0.tar.gz"
+  "https://github.com/linux-pam/linux-pam/releases/download/v1.6.1/Linux-PAM-1.6.1.tar.xz"
+  "https://ziglang.org/download/0.17.1/zig-x86_64-linux-0.17.1.tar.xz"
 )
 
 fail=()
@@ -111,6 +115,7 @@ for u in "${URLS[@]}"; do
         *dnkl/tllist*) f="tllist-1.1.0.tar.gz" ;;
         *dnkl/fcft*)   f="fcft-3.1.9.tar.gz" ;;
         *dnkl/foot*)   f="foot-1.18.1.tar.gz" ;;
+        *fairyglade/ly/archive*) f="ly-1.5.0.tar.gz" ;;
     esac
     if [ -s "$f" ]; then echo "have $f"; continue; fi
     echo "fetch $f"

@@ -34,6 +34,7 @@ b_llvm() {
     local top="$B_WORK"
     tar -C "$top" -xf "$(find_src llvm-cmake-)";   mv "$top/cmake-19.1.4.src"      "$top/cmake"
     tar -C "$top" -xf "$(find_src third-party-)";  mv "$top/third-party-19.1.4.src" "$top/third-party"
+
     local llvm_target
     case "$(uname -m)" in
         x86_64)        llvm_target="X86;AMDGPU" ;;
@@ -66,8 +67,9 @@ b_mesa() {
     rm -rf build
     local gallium="llvmpipe,virgl,zink" vulkan="swrast"
     if [ "$(uname -m)" = x86_64 ]; then
-        # radeonsi covers AMD hardware. Intel's iris is deferred: it needs
-        # intel_clc -> libclc -> clang, and this toolchain has no clang.
+        # radeonsi covers AMD. Intel's iris is not buildable here: it requires
+        # intel_clc -> libclc -> clang, and adding clang means rebuilding all of
+        # LLVM (hours), so Intel machines run the llvmpipe software path.
         gallium+=",radeonsi"
         vulkan="amd,swrast"
     fi

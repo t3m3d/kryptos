@@ -128,9 +128,10 @@ TIMEOUT=240 MEM=8192 ./scripts/46-smoke-iso.sh dist
 
 `44-make-iso.sh` creates `dist/kryptos.iso` plus `dist/kryptos.iso.sha256`.
 `46-smoke-iso.sh` boots it with UEFI QEMU and requires a serial login prompt.
-The live ISO currently includes
-Git, build tools, Dropbear SSH, UEFI support, Hyprland with Quickshell, AMD and
-Intel GPU firmware, and a manual disk installer.
+The ISO also carries a legacy-BIOS El Torito entry, so it boots on either
+firmware. The live ISO currently includes
+Git, build tools, Dropbear SSH, UEFI and BIOS boot, Hyprland with Quickshell,
+AMD and Intel GPU firmware, and a manual disk installer.
 
 Default live login:
 
@@ -156,12 +157,16 @@ kryptos-install --yes /dev/sda --uefi
 kryptos-install --yes /dev/sda --bios
 ```
 
-The image carries firmware for AMD (`amdgpu`) and Intel (`i915`) graphics and
-both Mesa drivers, so one ISO boots on either. `--gpu` decides which firmware
-gets written to the target; it defaults to detecting the GPU the live system is
-running on, and prunes the other vendor's payload (about 110 MB of AMD firmware)
-to save disk. Pass `--gpu=amd`, `--gpu=intel` or `--gpu=both` to override, which
-is useful when installing to a machine other than the one you booted.
+The image carries firmware for AMD (`amdgpu`) and Intel (`i915`) graphics, so
+one ISO boots on either. AMD gets the native `radeonsi` driver; Intel has no
+`iris` driver in this image and falls back to Mesa's llvmpipe software
+renderer, because `iris` needs `intel_clc`, which needs `libclc` and clang, and
+building clang inside the LLVM tree adds hours to the build. `--gpu` decides
+which firmware gets written to the target; it defaults to detecting the GPU the
+live system is running on, and prunes the other vendor's payload (about 110 MB
+of AMD firmware) to save disk. Pass `--gpu=amd`, `--gpu=intel` or `--gpu=both`
+to override, which is useful when installing to a machine other than the one
+you booted.
 
 ```sh
 kryptos-install --yes /dev/sda --gpu=intel

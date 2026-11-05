@@ -204,12 +204,42 @@ else
     die "missing $LFS/usr/lib/grub/x86_64-efi - run ch18-grub-efi.sh"
 fi
 
+# Legacy BIOS machines need an El Torito entry too; without it SeaBIOS
+# reports "Could not read from CDROM" and the ISO only boots on UEFI.
+msg "build BIOS boot image"
+if [ -d "$LFS/usr/lib/grub/i386-pc" ] && [ -f "$LFS/usr/lib/grub/i386-pc/cdboot.img" ]; then
+    cat > "$LFS/tmp/kryptos-bios-grub.cfg" <<'GRUBBIOS'
+search --file --set=root /kryptos/rootfs.tar.gz
+set prefix=($root)/boot/grub
+configfile /boot/grub/grub.cfg
+GRUBBIOS
+    chroot "$LFS" /usr/bin/env PATH=/usr/sbin:/usr/bin:/sbin:/bin \
+        grub-mkimage -O i386-pc -o /tmp/kryptos-bios-core.img \
+        -p /boot/grub -c /tmp/kryptos-bios-grub.cfg \
+        biosdisk iso9660 normal configfile linux search search_fs_file part_msdos part_gpt fat ext2
+    mkdir -p "$ISO_TREE/boot/grub/i386-pc"
+    cat "$LFS/usr/lib/grub/i386-pc/cdboot.img" "$LFS/tmp/kryptos-bios-core.img" \
+        > "$ISO_TREE/boot/grub/i386-pc/eltorito.img"
+    [ -s "$ISO_TREE/boot/grub/i386-pc/eltorito.img" ] || die "failed to build BIOS El Torito image"
+    BIOS_BOOT=1
+else
+    msg "no i386-pc GRUB modules; ISO will be UEFI-only"
+    BIOS_BOOT=0
+fi
+
 msg "make ISO -> $ISO"
 mkdir -p "$OUT"
 rm -f "$ISO"
 if command -v xorriso >/dev/null 2>&1; then
-    xorriso -as mkisofs -iso-level 3 -full-iso9660-filenames -R -J -V KRYPTOS \
-        -o "$ISO" -e boot/efiboot.img -no-emul-boot "$ISO_TREE"
+    if [ "${BIOS_BOOT:-0}" = 1 ]; then
+        xorriso -as mkisofs -iso-level 3 -full-iso9660-filenames -R -J -V KRYPTOS \
+            -b boot/grub/i386-pc/eltorito.img -no-emul-boot -boot-load-size 4 -boot-info-table \
+            -eltorito-alt-boot -e boot/efiboot.img -no-emul-boot \
+            -o "$ISO" "$ISO_TREE"
+    else
+        xorriso -as mkisofs -iso-level 3 -full-iso9660-filenames -R -J -V KRYPTOS \
+            -o "$ISO" -e boot/efiboot.img -no-emul-boot "$ISO_TREE"
+    fi
 elif command -v grub-mkrescue >/dev/null 2>&1; then
     grub-mkrescue -o "$ISO" "$ISO_TREE"
 else
