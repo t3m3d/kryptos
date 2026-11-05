@@ -1,0 +1,56 @@
+#!/bin/sh
+# Ly display manager on tty1.
+#
+# Upstream ships a sysvinit unit that backgrounds ly with
+# start-stop-daemon --background --make-pidfile; LFS has no start-stop-daemon,
+# so background the same `setsid -c` launcher here and record its pid.
+# Running ly from inittab instead made every session exit look like a failed
+# respawn: sysvinit banned tty1 for 5 minutes and nothing owned the display.
+set -eu
+LAUNCHER=/usr/local/sbin/kryptos-ly
+PIDFILE=/run/ly.pid
+TTY=/dev/tty1
+
+running_pid() {
+    [ -s "$PIDFILE" ] || return 1
+    pid=$(cat "$PIDFILE" 2>/dev/null || true)
+    [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null && printf '%s\n' "$pid"
+}
+
+case "${1:-}" in
+    start)
+        [ -c "$TTY" ] || { echo "KryptOS: $TTY is missing" >&2; exit 1; }
+        [ -x "$LAUNCHER" ] || { echo "KryptOS: $LAUNCHER is missing" >&2; exit 1; }
+        running_pid >/dev/null && exit 0
+        rm -f "$PIDFILE"
+        "$LAUNCHER" </dev/null >/dev/null 2>&1 &
+        # setsid may fork before exec, so resolve the real ly pid afterwards.
+        sleep 1
+        pid=$(pgrep -x ly 2>/dev/null | head -1 || true)
+        printf '%s\n' "${pid:-$!}" > "$PIDFILE"
+        ;;
+    stop)
+        if pid=$(running_pid); then
+            kill "$pid" 2>/dev/null || true
+            sleep 1
+            kill -9 "$pid" 2>/dev/null || true
+        fi
+        rm -f "$PIDFILE"
+        ;;
+    restart)
+        "$0" stop
+        exec "$0" start
+        ;;
+    status)
+        if pid=$(running_pid); then
+            echo "ly running (pid $pid)"
+        else
+            echo "ly stopped"
+            exit 3
+        fi
+        ;;
+    *)
+        echo "usage: $0 {start|stop|restart|status}" >&2
+        exit 2
+        ;;
+esac

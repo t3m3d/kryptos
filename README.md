@@ -1,7 +1,8 @@
 # KryptOS
 
-A Linux distribution built from scratch - the `krypt-` family's own OS. Boots to a
-login shell, built from the toolchain up (Linux From Scratch), branded KryptOS.
+A Linux distribution built from scratch - the `krypt-` family's own OS. Boots to
+the `ly` TUI login manager and a Hyprland desktop, built from the toolchain up
+(Linux From Scratch), branded KryptOS.
 
 > **Goal of v0:** a **bootable base system** - cross-toolchain - ~80 core
 > packages - kernel - GRUB - it logs in. Beyond-base (networking stack, desktop,
@@ -130,14 +131,27 @@ TIMEOUT=240 MEM=8192 ./scripts/46-smoke-iso.sh dist
 `46-smoke-iso.sh` boots it with UEFI QEMU and requires a serial login prompt.
 The ISO also carries a legacy-BIOS El Torito entry, so it boots on either
 firmware. The live ISO currently includes
-Git, build tools, Dropbear SSH, UEFI and BIOS boot, Hyprland with Quickshell,
-AMD and Intel GPU firmware, and a manual disk installer.
+Git, build tools, the Zig toolchain (`/opt/zig-0.17.1`, also on `PATH`), the
+`ly` TUI login manager on tty1, Dropbear SSH, UEFI and BIOS boot, Hyprland with
+Quickshell, AMD and Intel GPU firmware, and a manual disk installer.
 
-Default live login:
+`ly` draws on tty1 and offers the KryptOS Hyprland session; tty2/tty3 and the
+serial console stay available as a rescue shell. Type the user name at the
+login field. Default live login:
 
 ```sh
 root
 kryptos
+```
+
+It runs as the rc.d service `ly`, the way upstream's sysvinit unit does (LFS has
+no `start-stop-daemon`, so the service backgrounds the `setsid -c` launcher and
+keeps its pid). Leaving it in `inittab` made every finished session look like a
+failed respawn: sysvinit banned tty1 for five minutes. Control it with:
+
+```sh
+/etc/rc.d/init.d/ly status
+/etc/rc.d/init.d/ly restart
 ```
 
 Install to a VM disk from the live ISO:

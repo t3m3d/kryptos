@@ -120,7 +120,53 @@ EOF
     rm -f /usr/share/wayland-sessions/hyprland.desktop
 }
 
+# ch12 installed the original launcher; refresh it with the HOME/PATH defaults
+# that ly's session environment needs.
+b_ly_session_env() {
+    install -m755 /root/kryptos/config/start-hypr /usr/local/bin/start-hypr
+    grep -q 'HOME:-/root' /usr/local/bin/start-hypr
+}
+
+# Upstream's sysvinit unit backgrounds ly with start-stop-daemon and runs it
+# from rc.d. LFS has no start-stop-daemon, so KryptOS ships an rc.d service
+# that backgrounds the same setsid -c launcher. Leaving ly in inittab made
+# every session exit look like a failed respawn: sysvinit banned tty1 for five
+# minutes and no process owned the display any more.
+b_ly_service() {
+    install -m755 /root/kryptos/config/kryptos-ly /etc/rc.d/init.d/ly
+    for level in 2 3 4 5; do
+        install -d "/etc/rc.d/rc$level.d"
+        ln -sf ../init.d/ly "/etc/rc.d/rc$level.d/S30ly"
+    done
+    for level in 0 1 6; do
+        install -d "/etc/rc.d/rc$level.d"
+        ln -sf ../init.d/ly "/etc/rc.d/rc$level.d/K70ly"
+    done
+    # tty1 belongs to the service now; tty2, tty3 and the serial getty stay.
+    sed -i '/^1:2345:respawn:/d' /etc/inittab
+    ! grep -q '^1:2345:respawn:' /etc/inittab
+    grep -q '^2:2345:respawn' /etc/inittab
+    grep -q '^s0:2345:respawn' /etc/inittab
+    grep -q '^id:3:initdefault:' /etc/inittab
+    test -x /etc/rc.d/init.d/ly
+    test -L /etc/rc.d/rc3.d/S30ly
+}
+
+# ly writes its session log to ~/.local/state/ly-session.log and refuses to
+# launch a session at all when that directory is missing: ly.log reports
+# "failed to resolve path for session log file directory: FileNotFound" and
+# then "logged out" without ever running the session command. Root's home is
+# baked into the image, so provide the directory there.
+b_ly_state() {
+    install -d -m 700 /root/.local
+    install -d -m 700 /root/.local/state
+    test -d /root/.local/state
+}
+
 step d_pam b_pam
 step d_zig b_zig
 step d_ly  b_ly
 step d_ly_console b_ly_console
+step d_ly_session_env b_ly_session_env
+step d_ly_service b_ly_service
+step d_ly_state b_ly_state

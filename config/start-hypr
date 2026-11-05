@@ -1,4 +1,10 @@
 #!/bin/sh
+# ly launches this straight from inittab, without a login shell, so HOME and
+# PATH arrive absent or minimal. A PATH without /usr/bin makes the root check
+# below fail with "id: command not found", and Hyprland aborts without HOME
+# ("Neither HOME nor XDG_CONFIG_HOME are set"), so set both before anything.
+export HOME="${HOME:-/root}"
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin${PATH:+:$PATH}"
 [ "$(id -u)" -eq 0 ] || { echo "KryptOS: start-hypr currently requires root." >&2; exit 1; }
 command -v Hyprland >/dev/null 2>&1 || { echo "KryptOS: Hyprland is not installed." >&2; exit 1; }
 STARTUP_TIMEOUT=${STARTUP_TIMEOUT:-30}
