@@ -1,0 +1,15 @@
+#!/bin/bash
+set -euo pipefail
+DIR="$(cd "$(dirname "$0")" && pwd)"
+if [ -x "$DIR/kryptos-ipc" ]; then
+    exec "$DIR/kryptos-ipc" toggleCalculator
+fi
+if [ -x "$HOME/.config/quickshell/scripts/kryptos-ipc" ]; then
+    exec "$HOME/.config/quickshell/scripts/kryptos-ipc" toggleCalculator
+fi
+# Legacy dev-tree fallback
+if [ -x "$HOME/Projects/kryptos-shell/quickshell/scripts/kryptos-ipc" ]; then
+    exec "$HOME/Projects/kryptos-shell/quickshell/scripts/kryptos-ipc" toggleCalculator
+fi
+echo "kryptos-ipc not found" >&2
+exit 1

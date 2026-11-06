@@ -1,0 +1,64 @@
+{
+  "general": {
+    "uiFont": "Inter",
+    "widgetOpacity": 1.0,
+    "showWidgetBorders": false,
+    "widgetBorderWidth": 1,
+    "blur": false,
+    "clockFormat24hr": false,
+    "showSeconds": false,
+    "dateFormat": "MDY",
+    "dateLong": false,
+    "showDayOfWeek": false
+  },
+  "bar": {
+    "position": "top",
+    "barSize": "small",
+    "barStyle": "single",
+    "backgroundStyle": "translucent",
+    "barOpacity": 0.7,
+    "floating": false,
+    "showBorder": false,
+    "showQuickLaunch": true,
+    "showSystemTray": false,
+    "showMediaPlayer": false,
+    "minWorkspaces": 4,
+    "workspaceStyle": "dots"
+  },
+  "dock": {
+    "enabled": true,
+    "position": "bottom",
+    "alignment": "center",
+    "floating": true,
+    "backgroundStyle": "translucent",
+    "opacity": 0.7,
+    "showBorder": false,
+    "iconSize": 48,
+    "spanFullWidth": false,
+    "pinned": []
+  },
+  "hypr": {
+    "rounding": 12,
+    "showBorder": true,
+    "borderSize": 3,
+    "blurEnabled": false,
+    "blurSize": 10,
+    "windowTransparent": false,
+    "windowOpacity": 0.92
+  },
+  "screenshot": {
+    "saveLocation": "~/Pictures/Screenshots"
+  },
+  "wallpaper": {
+    "directory": "~/Pictures/Wallpapers",
+    "current": "",
+    "transition": "fade",
+    "source": "theme",
+    "mode": "static",
+    "slideshowInterval": 300
+  },
+  "sddm": {
+    "followDesktop": true,
+    "customWallpaper": ""
+  }
+}

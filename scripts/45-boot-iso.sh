@@ -55,7 +55,7 @@ exec "$QEMU_BIN" \
     -boot d \
     -netdev user,id=n0 \
     -device virtio-net-pci,netdev=n0 \
-    -device virtio-vga \
+    -device "virtio-vga,xres=${QEMU_WIDTH:-1280},yres=${QEMU_HEIGHT:-800}" \
     -display "${QEMU_DISPLAY:-none}" \
     -monitor "${QEMU_MONITOR:-none}" \
     -serial stdio

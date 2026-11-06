@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Run the kryptos-theme CLI without depending on PATH.
+# Hyprland-launched Quickshell often lacks ~/.local/bin.
+#
+# Resolution order:
+#   1. ~/.config/kryptos/repo-root/theme-engine (git checkout after pull)
+#   2. theme-engine next to this script's checkout (dev / symlinked quickshell)
+#   3. ~/.local/bin/kryptos-theme (wrapper; prefers repo-root when synced)
+#   4. python -m against ~/.local/share/kryptos-shell/theme-engine
+#   5. kryptos-theme on PATH
+set -euo pipefail
+
+script_dir="$(cd "$(dirname "$0")" && pwd)"
+# quickshell/scripts → repo root when running from a checkout; ~/.config when
+# quickshell was copied to ~/.config/quickshell by install.sh.
+maybe_repo="$(cd "$script_dir/../.." && pwd)"
+share_engine="${HOME}/.local/share/kryptos-shell/theme-engine"
+installed_bin="${HOME}/.local/bin/kryptos-theme"
+repo_root_file="${HOME}/.config/kryptos/repo-root"
+
+if [[ -f "$repo_root_file" ]]; then
+    root="$(tr -d '[:space:]' < "$repo_root_file")"
+    if [[ -n "$root" && -x "$root/theme-engine/kryptos-theme" && -d "$root/theme-engine/kryptos_theme" ]]; then
+        exec "$root/theme-engine/kryptos-theme" "$@"
+    fi
+fi
+
+if [[ -x "$maybe_repo/theme-engine/kryptos-theme" && -d "$maybe_repo/theme-engine/kryptos_theme" ]]; then
+    exec "$maybe_repo/theme-engine/kryptos-theme" "$@"
+fi
+
+if [[ -x "$installed_bin" ]]; then
+    exec "$installed_bin" "$@"
+fi
+
+if [[ -d "$share_engine/kryptos_theme" ]]; then
+    export PYTHONPATH="${share_engine}${PYTHONPATH:+:$PYTHONPATH}"
+    exec python3 -m kryptos_theme "$@"
+fi
+
+if command -v kryptos-theme >/dev/null 2>&1; then
+    exec kryptos-theme "$@"
+fi
+
+echo "kryptos-theme CLI not found (checked repo-root, checkout, ~/.local/bin, and $share_engine)" >&2
+exit 127

@@ -201,6 +201,44 @@ ip addr
 
 Then connect from the host with `ssh root@<vm-ip>`.
 
+## KryptOS Quickshell shell
+
+The live image ships the Quickshell bar, launcher and panels at
+`/etc/xdg/quickshell/kryptos/` (repo: `config/quickshell/kryptos/`). Hyprland
+starts it with `exec-once = qs -c kryptos -d`; `Super+Space` opens the launcher
+through `qs -c kryptos ipc call kryptos toggleLauncher`.
+
+Edit the repo, not the ISO. The main files are:
+
+- `config/quickshell/kryptos/shell.qml` - top-level panel windows and state
+- `config/quickshell/kryptos/components/Panel.qml` - shared panel chrome
+- `config/quickshell/kryptos/modules/bar/` - the top bar widgets
+- `config/quickshell/kryptos/modules/launcher/AppLauncher.qml` - app launcher
+- `config/quickshell/kryptos/Settings.qml`, `ThemeManager.qml` - defaults/theme
+- `config/theme-engine/` - `kryptos-theme` engine (palettes, GTK/Ghostty/Hyprland fan-out)
+
+User settings are `config/kryptos/settings.json`, installed to
+`/root/.config/kryptos/settings.json` by `ch12-session.sh`; theme palettes are
+`config/kryptos/themes/`. The shell keeps its upstream GPL attribution in
+`config/quickshell/kryptos/CREDITS.md` and is branded KryptOS throughout.
+
+The image builds Qt without `QtQuick.Controls` or `QtQuick.Effects`, so the
+shell carries local stand-ins: `components/InputField.qml` wraps a TextInput
+(`focusInput()` instead of `forceActiveFocus()`), and
+`components/WidgetShadowEffect.qml` is a no-op stub. Keep new QML to QtQuick,
+QtQuick.Layouts and the Quickshell modules (`Io`, `Hyprland`, `Wayland`).
+Python 3 is present at `/usr/bin/python3` for the shell helper scripts under
+`config/quickshell/kryptos/scripts/`; `nmcli` is not installed, so the network
+panel has no Wi-Fi backend.
+
+Themes switch from Settings -> Theme, or with `kryptos-theme list` and
+`kryptos-theme apply nord`. The engine installs to
+`/usr/share/kryptos/theme-engine/` (repo: `config/theme-engine/`), bundled
+palettes to `/usr/share/kryptos/themes/` (repo: `config/kryptos/themes/`), and
+the active palette to `/root/.config/kryptos/current.json`, which the shell
+watches live. Applying a palette also recolors Hyprland's active/inactive
+borders; the stock `hyprland.conf` stays the baseline for a fresh boot.
+
 ## The build VM (set up 2026-06-19)
 
 A Lima VM **`kryptos`** is the build host on Brian's Mac: **Ubuntu 25.10,
@@ -317,6 +355,9 @@ DHCP server, GRUB boot, or target Linux build.
 
 ## x86_64 ISO testing on macOS
 
+Double-click `Start KryptOS.command` in Finder to launch the local ISO.
+Terminal opens automatically and stays open while QEMU runs.
+
 The local base ISO in `dist/x86_64` reached serial login in macOS QEMU on
 2026-10-31 (332 seconds). It does not include Hyprland/Quickshell. Launch it:
 
@@ -328,10 +369,17 @@ The local base ISO in `dist/x86_64` reached serial login in macOS QEMU on
 The launcher checks the checksum, uses Homebrew QEMU's UEFI firmware and
 software x86 emulation, and gives the guest 8 GiB RAM, one CPU, and HPET disabled.
 These defaults match the successful test; four-CPU attempts stalled during boot.
-Graphical mode uses Cocoa and virtio VGA. Images containing desktop packages
+Graphical mode opens a Cocoa window, scales video to fit, and advertises
+1600×900 through virtio VGA. For fullscreen, launch with
+`QEMU_DISPLAY=cocoa,full-screen=on,zoom-to-fit=on`; override `QEMU_WIDTH` and `QEMU_HEIGHT`
+to choose a different preferred guest resolution. Images containing desktop packages
 can start Hyprland from tty1. Headless mode allows 600 seconds to
 reach serial login. Stop other large VMs before booting the ISO. Apple Silicon
 cannot use HVF to accelerate an x86 guest; builds and boot tests are slower.
+
+To fill the screen and retain the title bar and traffic-light controls,
+hover over the green window button and choose Fill in the default windowed mode. QEMU's
+fullscreen mode hides the menu bar and window controls.
 
 The local Lima `krypton` VM is x86_64 and can build KryptOS independently of
 Windows. Current scripts are copied to `~/kryptos-macos-build` inside that VM;

@@ -37,6 +37,8 @@ if [ -d "$REPO/config" ]; then
     mkdir -p "$LFS/root/kryptos/config"
     cp -a "$REPO/config/." "$LFS/root/kryptos/config/"
 fi
+# macOS bsdtar emits AppleDouble "._*" members; they are not readable JSON/QML.
+find "$LFS/root/kryptos/config" "$LFS/root/kryptos/scripts" -name '._*' -delete 2>/dev/null || true
 chmod +x "$LFS/root/kryptos/scripts/chroot/"*.sh
 
 echo "[chroot] entering → /root/kryptos/scripts/chroot/$INNER"

@@ -99,8 +99,24 @@ b_quickshell() {
 
 b_shell_config() {
     install -d /etc/xdg/quickshell/kryptos
-    install -m644 /root/kryptos/config/quickshell/kryptos/shell.qml \
-        /etc/xdg/quickshell/kryptos/shell.qml
+    cp -a /root/kryptos/config/quickshell/kryptos/. /etc/xdg/quickshell/kryptos/
+    test -r /etc/xdg/quickshell/kryptos/shell.qml
+}
+
+b_theme_engine() {
+    install -d /usr/share/kryptos /usr/share/licenses/kryptos-shell
+    rm -rf /usr/share/kryptos/theme-engine /usr/share/kryptos/themes
+    cp -a /root/kryptos/config/theme-engine /usr/share/kryptos/theme-engine
+    install -d /usr/share/kryptos/themes
+    cp -a /root/kryptos/config/kryptos/themes/. /usr/share/kryptos/themes/
+    find /usr/share/kryptos -name '._*' -delete
+    chmod 755 /usr/share/kryptos/theme-engine/kryptos-theme
+    ln -sf ../share/kryptos/theme-engine/kryptos-theme /usr/bin/kryptos-theme
+    [ -f /root/kryptos/config/quickshell/kryptos/LICENSE ] && \
+        install -m644 /root/kryptos/config/quickshell/kryptos/LICENSE /usr/share/licenses/kryptos-shell/GPL-3.0
+    python3 -c 'import sys; sys.path.insert(0, "/usr/share/kryptos/theme-engine"); import kryptos_theme.cli'
+    kryptos-theme list --json >/dev/null
+    test "$(kryptos-theme list --json | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))')" -ge 20
 }
 
 b_quickshell_smoke() {
@@ -124,6 +140,7 @@ step q_qtdeclarative    b_qtdeclarative
 step q_qtwayland        b_qtwayland
 step q_qtsvg            b_qtsvg
 step q_quickshell       b_quickshell
-step q_shell_config     b_shell_config
+step q_shell_config_v5  b_shell_config
+step q_theme_engine_v2  b_theme_engine
 step q_smoke            b_quickshell_smoke
 msg "Quickshell done - KryptOS bar and launcher ready."

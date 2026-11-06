@@ -50,7 +50,7 @@ debug {
 # ---- keybinds ----
 $mod = SUPER
 bind = $mod, Return, exec, foot
-bind = $mod, Space, exec, qs -c kryptos ipc call launcher toggle
+bind = $mod, Space, exec, qs -c kryptos ipc call kryptos toggleLauncher
 bind = $mod, Q, killactive,
 bind = $mod, M, exit,
 bind = $mod, V, togglefloating,
@@ -70,6 +70,11 @@ bindm = $mod, mouse:273, resizewindow
 exec-once = qs -c kryptos -d
 exec-once = foot
 EOF
+install -d /root/.config/kryptos
+install -m644 /root/kryptos/config/kryptos/settings.json /root/.config/kryptos/settings.json
+install -d /root/.config/kryptos/themes
+[ -f /root/.config/kryptos/current.json ] || \
+    install -m644 /root/kryptos/config/kryptos/themes/catppuccin.json /root/.config/kryptos/current.json
 
 # Normal user for desktop and day-to-day work. Idempotent: this script has no
 # step marker and runs on every pipeline pass.
