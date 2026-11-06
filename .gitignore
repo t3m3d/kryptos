@@ -6,6 +6,8 @@ build-state/
 *.img
 .DS_Store
 dist/
+.cloud-attachments/
+.freebuff/
 
 sources-cache/
 Start KryptOS.command
