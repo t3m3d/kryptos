@@ -1,5 +1,6 @@
 # never commit the build tree, sources, or logs (they live on the Linux host)
 sources/
+*handoff*
 build-logs/
 build-state/
 *.log
