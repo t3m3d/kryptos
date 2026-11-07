@@ -14,6 +14,10 @@ Rectangle {
     // screen edge and can't grow further in that direction.
     property real glyphOffsetY: 0
     property bool compact: false
+    // Optional image mark. When set it replaces the Nerd Font glyph; ordinary
+    // icon buttons leave it empty and keep using their glyph.
+    property url imageSource: ""
+    property real imageScale: 0.85
     signal clicked()
 
     width: compact ? pixelSize + 12 : 46
@@ -26,6 +30,20 @@ Rectangle {
         SpringAnimation { spring: ThemeManager.bounceSpring; damping: ThemeManager.bounceDamping; mass: ThemeManager.bounceMass }
     }
 
+    Image {
+        id: glyphImage
+        anchors.centerIn: parent
+        width: Math.round(Math.min(root.width, root.height) * root.imageScale)
+        height: width
+        source: root.imageSource
+        sourceSize.width: Math.max(1, Math.round(width))
+        sourceSize.height: Math.max(1, Math.round(height))
+        fillMode: Image.PreserveAspectFit
+        smooth: true
+        mipmap: true
+        visible: root.imageSource.toString().length > 0
+    }
+
     Text {
         anchors.centerIn: parent
         anchors.verticalCenterOffset: root.glyphOffsetY
@@ -33,6 +51,7 @@ Rectangle {
         font.family: "Symbols Nerd Font"
         font.pixelSize: root.pixelSize
         color: root.glyphColor
+        visible: root.imageSource.toString().length === 0
     }
 
     MouseArea {

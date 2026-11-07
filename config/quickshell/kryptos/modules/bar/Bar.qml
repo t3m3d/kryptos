@@ -95,9 +95,8 @@ Item {
         anchors.verticalCenter: barBg.verticalCenter
         width: ThemeManager.archIconSize
         height: ThemeManager.archIconSize
-        glyph: "󰣇"
-        glyphColor: ThemeManager.accentBlue
-        pixelSize: Math.round(ThemeManager.archIconSize * 0.85)
+        imageSource: Qt.resolvedUrl("../../assets/logos/krypton_logo.png")
+        imageScale: 0.85
         hoverScale: ThemeManager.archIconHoverScale
         pressScale: ThemeManager.archIconPressScale
         onClicked: bar.toggleLauncher()

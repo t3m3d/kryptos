@@ -369,9 +369,9 @@ The local base ISO in `dist/x86_64` reached serial login in macOS QEMU on
 The launcher checks the checksum, uses Homebrew QEMU's UEFI firmware and
 software x86 emulation, and gives the guest 8 GiB RAM, one CPU, and HPET disabled.
 These defaults match the successful test; four-CPU attempts stalled during boot.
-Graphical mode opens a Cocoa window, scales video to fit, and advertises
-1600×900 through virtio VGA. For fullscreen, launch with
-`QEMU_DISPLAY=cocoa,full-screen=on,zoom-to-fit=on`; override `QEMU_WIDTH` and `QEMU_HEIGHT`
+Graphical mode opens a fullscreen Cocoa window, scales video to fit, and advertises
+1600×900 through virtio VGA. For a windowed display, launch with
+`QEMU_DISPLAY=cocoa,full-screen=off,zoom-to-fit=on`; override `QEMU_WIDTH` and `QEMU_HEIGHT`
 to choose a different preferred guest resolution. Images containing desktop packages
 can start Hyprland from tty1. Headless mode allows 600 seconds to
 reach serial login. Stop other large VMs before booting the ISO. Apple Silicon
