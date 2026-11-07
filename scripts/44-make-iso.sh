@@ -43,6 +43,10 @@ mkdir -p "$STAGE"/{proc,sys,dev,run,tmp,boot}
 install -Dm755 scripts/live/kryptos-install "$STAGE/usr/sbin/kryptos-install"
 chmod 1777 "$STAGE/tmp"
 
+# Live ISO safety valve: coldplug must not hold init forever if a synthetic
+# uevent write stalls. The helper runs udev coldplug in the background.
+python3 scripts/live/udev-nonblocking.py "$STAGE"
+
 msg "pack rootfs -> $ROOT_TAR"
 need_host tar
 need_host gzip
