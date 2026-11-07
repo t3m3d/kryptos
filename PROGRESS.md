@@ -33,11 +33,22 @@ Fresh artifact: `dist/kryptos.iso`, SHA-256 in `dist/kryptos.iso.sha256`.
 - [x] Stage 3 chroot tools
 - [x] Final base, kernel, DHCP target build, UEFI GRUB
 - [x] Package current base ISO and verify real macOS QEMU boot
-- [ ] Add and verify Hyprland/Quickshell in local x86_64 image
+- [x] Add and verify Hyprland/Quickshell in local x86_64 image
+- [x] Bar/dock icons render (Nerd Font + Noto Color Emoji installed in the image)
 
 2026-10-29: final GCC and OpenSSL completed. Fixed kmod's missing pkg-config
 dependency by moving pkgconf before kmod in ch8; resumed from existing package
 checkpoints. Final base system still in progress; no local ISO boot proof yet.
+
+2026-11-06: icons rendered as empty blocks because the image shipped only DejaVu
+while config/quickshell asks for `Symbols Nerd Font` (39 uses) and Noto Color
+Emoji. Added both to scripts/50-fetch-desktop.sh and a `d_fonts-nerd` step in
+ch13-tools.sh (SymbolsNerdFont tarball + the Noto ttf unpacked from Debian's
+fonts-noto-color-emoji .deb), rebuilt the ISO and booted it under QEMU
+(virtio-vga): start-hypr from the serial console draws the bar glyphs, workspace
+dots, launcher pill and dock icons, and fc-match inside the image resolves both
+families to /usr/share/fonts/{nerd-symbols,noto-emoji}. Frames saved as
+dist/live-desktop.png and dist/bar-zoom.png.
 
 2026-10-31: base ISO reached `kryptos login:` in a real macOS QEMU UEFI
 boot in 332 seconds. Verified configuration: one virtual CPU, q35,hpet=off,

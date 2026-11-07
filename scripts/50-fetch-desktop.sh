@@ -95,6 +95,12 @@ URLS=(
   "https://codeberg.org/dnkl/foot/archive/1.18.1.tar.gz"
   "https://gitlab.freedesktop.org/emersion/grim/-/archive/v1.4.1/grim-v1.4.1.tar.gz"
   "https://github.com/dejavu-fonts/dejavu-fonts/releases/download/version_2_37/dejavu-fonts-ttf-2.37.tar.bz2"
+  # UI fonts: the shell draws every bar/dock icon as a Nerd Font glyph
+  # (font.family "Symbols Nerd Font") and uses Noto for emoji. Without these
+  # each icon renders as a tofu block.
+  "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.3.0/NerdFontsSymbolsOnly.tar.xz"
+  # upstream github raw 404s for the ttf; Debian ships the same font in a .deb
+  "https://deb.debian.org/debian/pool/main/f/fonts-noto-color-emoji/fonts-noto-color-emoji_2.051-1_all.deb"
   # --- display manager + toolchain ---
   "https://github.com/fairyglade/ly/archive/refs/tags/v1.5.0.tar.gz"
   "https://github.com/linux-pam/linux-pam/releases/download/v1.6.1/Linux-PAM-1.6.1.tar.xz"
