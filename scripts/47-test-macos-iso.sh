@@ -21,10 +21,10 @@ if [ "$MODE" = headless ]; then
     export TIMEOUT="${TIMEOUT:-600}"
     exec bash scripts/46-smoke-iso.sh "$DIST"
 fi
-export QEMU_DISPLAY="${QEMU_DISPLAY:-cocoa,full-screen=off,zoom-to-fit=on}"
+export QEMU_DISPLAY="${QEMU_DISPLAY:-cocoa,full-screen=on,zoom-to-fit=on}"
 export QEMU_WIDTH="${QEMU_WIDTH:-1600}"
 export QEMU_HEIGHT="${QEMU_HEIGHT:-900}"
-echo 'Hover over the green window button and choose Fill to keep window controls visible.'
+echo 'QEMU opens fullscreen; use its View menu to leave fullscreen.'
 echo 'x86_64 UEFI boot under software emulation; first boot may take several minutes.'
 echo 'Base ISO provides a console. For desktop-enabled images, run start-hypr from tty1.'
 exec bash scripts/45-boot-iso.sh "$DIST"
