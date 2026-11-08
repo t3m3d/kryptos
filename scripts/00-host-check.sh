@@ -38,6 +38,7 @@ ver sed --version
 ver tar --version
 ver makeinfo --version      # texinfo
 ver xz --version
+ver zstd --version          # live rootfs packing
 
 # awk and yacc must resolve (LFS expects symlinks to gawk/bison)
 command -v awk  >/dev/null 2>&1 && ok "awk -> $(readlink -f "$(command -v awk)")"  || bad "awk missing"

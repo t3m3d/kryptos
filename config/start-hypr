@@ -26,7 +26,7 @@ export LIBSEAT_BACKEND=builtin
 # call fails and no portal or notification daemon can be activated. Images
 # built without dbus simply skip this.
 if [ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ] && command -v dbus-daemon >/dev/null 2>&1; then
-    if bus_address=$(dbus-daemon --session --fork --print-address=1 2>/dev/null); then
+    if bus_address=$(dbus-daemon --session --fork --print-address=1 9>&- 2>/dev/null); then
         [ -z "$bus_address" ] || export DBUS_SESSION_BUS_ADDRESS="$bus_address"
     fi
 fi
@@ -53,6 +53,7 @@ if [ ! -e "$DRM_CARD" ]; then
 fi
 export AQ_DRM_DEVICES="$DRM_CARD"
 
+qemu_software=0
 case "$DRM_DRIVER" in
     hyperv_drm)
         export WLR_NO_HARDWARE_CURSORS=1
@@ -82,15 +83,46 @@ case "$DRM_DRIVER" in
             # kms_swrast with the wrong gallium driver and every EGL client
             # (including Qt's wayland plugin) then fails to create a config.
             unset MESA_LOADER_DRIVER_OVERRIDE GALLIUM_DRIVER
+            # QEMU's 2D virtio device rejects atomic modesets with this Mesa
+            # fallback, and its EGL native-fence calls fail every frame.
+            # Keep these workarounds off Hyper-V and physical GPUs.
+            qemu_software=1
+            export AQ_NO_ATOMIC="${AQ_NO_ATOMIC:-1}"
+            export HYPRLAND_NO_RT="${HYPRLAND_NO_RT:-1}"
+            export QT_QUICK_BACKEND="${QT_QUICK_BACKEND:-software}"
+            export QSG_RENDER_LOOP="${QSG_RENDER_LOOP:-basic}"
         fi
         ;;
     amdgpu)
         export LIBVA_DRIVER_NAME=radeonsi
         ;;
 esac
+set --
+if [ "$qemu_software" -eq 1 ]; then
+    base_config="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprland.conf"
+    [ -r "$base_config" ] || { echo "KryptOS: Hyprland config missing: $base_config" >&2; exit 1; }
+    vm_config="$XDG_RUNTIME_DIR/kryptos-hypr-qemu.conf"
+    {
+        printf 'source = %s\n' "$base_config"
+        cat <<'QEMU_CONFIG'
+# Compatibility profile for QEMU's unaccelerated virtio display.
+render {
+    explicit_sync = 0
+    explicit_sync_kms = 0
+}
+monitor = Virtual-1,1440x900@60,auto,1
+animations {
+    enabled = false
+}
+QEMU_CONFIG
+    } > "$vm_config"
+    set -- --config "$vm_config"
+fi
 echo "KryptOS: starting Hyprland on $DRM_CARD (driver ${DRM_DRIVER:-unknown})."
 # v0 runs the VM as root; Hyprland blocks root unless this flag is passed.
-Hyprland --i-am-really-stupid > /var/log/hypr.log 2>&1 &
+# Only this supervisor owns the lock. Detached clients and the session bus
+# must not keep it held after the compositor exits.
+Hyprland "$@" --i-am-really-stupid 9>&- > /var/log/hypr.log 2>&1 &
 hypr_pid=$!
 cleanup() {
     kill "$hypr_pid" 2>/dev/null || true

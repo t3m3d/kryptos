@@ -9,7 +9,7 @@ WORK="$OUT/iso-work"
 STAGE="$LFS/build-tmp/rootstage"
 ISO_TREE="$WORK/iso"
 INITRD="$WORK/initramfs"
-ROOT_TAR="$ISO_TREE/kryptos/rootfs.tar.gz"
+ROOT_TAR="$ISO_TREE/kryptos/rootfs.tar.zst"
 ISO="$OUT/kryptos.iso"
 
 msg() { printf '[iso] %s\n' "$*"; }
@@ -49,10 +49,11 @@ python3 scripts/live/udev-nonblocking.py "$STAGE"
 
 msg "pack rootfs -> $ROOT_TAR"
 need_host tar
-need_host gzip
-tar --numeric-owner --xattrs --acls -C "$STAGE" -cpf - . | gzip -1 > "$ROOT_TAR"
+need_host zstd
+tar --numeric-owner --xattrs --acls -C "$STAGE" -cpf - . | zstd -1 -T0 -q -c > "$ROOT_TAR"
 
 msg "build initramfs"
+need_host gzip
 copy_lfs_path() {
     local src="$1" dst
     need_lfs "$src"
@@ -88,6 +89,7 @@ for bin in \
     /usr/bin/chmod \
     /usr/bin/tar \
     /usr/bin/gzip \
+    /usr/bin/zstd \
     /usr/sbin/switch_root; do
     add_bin "$bin"
 done
@@ -116,11 +118,18 @@ echo "[kryptos-init] console ready"
 
 echo "[kryptos-init] search ISO rootfs"
 found=
+rootfs=
 for round in 1 2 3 4 5 6 7 8 9 10; do
     for dev in /dev/sr* /dev/cdrom /dev/vd* /dev/sd*; do
         [ -b "$dev" ] || continue
         mount -t iso9660 -o ro "$dev" /run/iso 2>/dev/null || continue
+        if [ -f /run/iso/kryptos/rootfs.tar.zst ]; then
+            rootfs=/run/iso/kryptos/rootfs.tar.zst
+            found=1
+            break 2
+        fi
         if [ -f /run/iso/kryptos/rootfs.tar.gz ]; then
+            rootfs=/run/iso/kryptos/rootfs.tar.gz
             found=1
             break 2
         fi
@@ -136,8 +145,12 @@ fi
 
 echo "[kryptos-init] extract KryptOS rootfs to RAM"
 mount -t tmpfs -o size=85% tmpfs /newroot
-echo "[kryptos-init] rootfs unpack start"
-gzip -dc /run/iso/kryptos/rootfs.tar.gz | tar -xpf - -C /newroot
+echo "[kryptos-init] rootfs unpack start ($rootfs)"
+case "$rootfs" in
+    *.zst) zstd -dc "$rootfs" | tar -xpf - -C /newroot ;;
+    *.gz)  gzip -dc "$rootfs" | tar -xpf - -C /newroot ;;
+    *)     echo "[kryptos-init] unsupported rootfs payload"; exit 1 ;;
+esac
 echo "[kryptos-init] rootfs unpack done"
 mkdir -p /newroot/dev/pts /newroot/dev/shm /newroot/proc /newroot/sys/fs/cgroup /newroot/run /newroot/tmp
 mkdir -p /newroot/media/kryptos-live
@@ -183,7 +196,7 @@ GRUB
 msg "build UEFI boot image"
 if [ -d "$LFS/usr/lib/grub/x86_64-efi" ]; then
     cat > "$LFS/tmp/kryptos-efi-grub.cfg" <<'GRUBEFI'
-search --file --set=root /kryptos/rootfs.tar.gz
+search --file --set=root /kryptos/rootfs.tar.zst
 set prefix=($root)/boot/grub
 configfile /boot/grub/grub.cfg
 GRUBEFI
@@ -213,7 +226,7 @@ fi
 msg "build BIOS boot image"
 if [ -d "$LFS/usr/lib/grub/i386-pc" ] && [ -f "$LFS/usr/lib/grub/i386-pc/cdboot.img" ]; then
     cat > "$LFS/tmp/kryptos-bios-grub.cfg" <<'GRUBBIOS'
-search --file --set=root /kryptos/rootfs.tar.gz
+search --file --set=root /kryptos/rootfs.tar.zst
 set prefix=($root)/boot/grub
 configfile /boot/grub/grub.cfg
 GRUBBIOS

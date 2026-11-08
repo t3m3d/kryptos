@@ -10,6 +10,11 @@ the `ly` TUI login manager and a Hyprland desktop, built from the toolchain up
 
 ## Important: where this runs
 
+KryptOS is an independent, source-built distribution. It does not ship pacman
+or provide a binary package repository. Build-host dependencies are installed
+on the separate Linux machine or VM used to build KryptOS, not inside the
+booted KryptOS system.
+
 The build runs on a **Linux build host** - Agent L's ParrotOS box or a Linux VM -
 **not on macOS**. macOS can't compile a Linux toolchain. Agent M writes/maintains
 these scripts and debugs failures; L (or Brian) runs them on Linux.
@@ -64,19 +69,21 @@ KryptOS - pairs with Krypton, KryptScript, kryptonbytes, yubiKrypt. Codename bak
 into `env.sh` (`DISTRO_NAME`); shows up in `/etc/os-release`, the hostname, and
 the boot entry when we get there.
 
-## Host prep on Arch Linux
+## Build-host prerequisites
 
-The build host (L's box, or a Linux VM) is Arch. Install the LFS host tools:
+Prepare a separate Linux build host with the GNU toolchain and the host tools
+required by the selected LFS book: Bash, Binutils, GCC/G++, Make, Bison, Gawk,
+Texinfo, Perl, Python 3, M4, Patch, GNU text/file utilities, Gzip, XZ, and Zstd.
+Use that host distribution's own installation instructions for missing tools.
+These are build-machine requirements, not a package-installation workflow for
+KryptOS.
 
 ```sh
-sudo pacman -S --needed base-devel bison gawk texinfo python wget
-# base-devel covers gcc, make, binutils, patch, m4, sed, grep, gzip, tar, etc.
-sudo ln -sf bash /bin/sh    # if /bin/sh isn't bash; LFS expects bash-y sh during build
+./scripts/00-host-check.sh
 ```
 
-Then `./scripts/00-host-check.sh` should pass. Arch ships very current tool
-versions - if a host-tool version is *ahead* of what the LFS book lists, it's
-usually fine, but note it if a build breaks.
+Resolve any missing tools reported by the check and compare their versions
+with the selected LFS book before building.
 
 ## Run order (Linux host)
 
@@ -128,7 +135,9 @@ TIMEOUT=240 MEM=8192 ./scripts/46-smoke-iso.sh dist
 ## First live ISO
 
 `44-make-iso.sh` creates `dist/kryptos.iso` plus `dist/kryptos.iso.sha256`.
-`46-smoke-iso.sh` boots it with UEFI QEMU and requires a serial login prompt.
+The live rootfs is packed with zstd for faster boot-time decompression, with a
+gzip fallback kept in the initramfs and installer. `46-smoke-iso.sh` boots it
+with UEFI QEMU and requires a serial login prompt.
 The ISO also carries a legacy-BIOS El Torito entry, so it boots on either
 firmware. The live ISO currently includes
 Git, build tools, the Zig toolchain (`/opt/zig-0.17.1`, also on `PATH`), the
@@ -250,7 +259,8 @@ limactl start kryptos                  # boot it
 limactl shell kryptos                  # get a shell
 ```
 
-Host-prep (Ubuntu/apt - already done on the VM):
+Historical Ubuntu build-VM preparation only. These commands run inside that
+Ubuntu VM; they do not run inside KryptOS:
 ```sh
 sudo apt-get update
 sudo apt-get install -y build-essential bison gawk texinfo m4 patch wget python3 xz-utils gettext
@@ -360,6 +370,10 @@ Terminal opens automatically and stays open while QEMU runs.
 
 The local base ISO in `dist/x86_64` reached serial login in macOS QEMU on
 2026-10-31 (332 seconds). It does not include Hyprland/Quickshell. Launch it:
+
+A zstd-rootfs test image at `dist/fast/kryptos.iso` reached serial login in
+127 seconds on the same one-CPU TCG configuration; the gzip comparison image
+took 844 seconds.
 
 ```sh
 ./scripts/47-test-macos-iso.sh dist/x86_64 graphical

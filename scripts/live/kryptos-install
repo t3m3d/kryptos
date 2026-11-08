@@ -90,7 +90,6 @@ need blockdev
 need mkfs.ext4
 need blkid
 need tar
-need gzip
 
 if [ "$MODE" = "--uefi" ]; then
     need mkfs.fat
@@ -159,11 +158,20 @@ if [ "$MODE" = "--uefi" ]; then
     [ -n "$ESP_UUID" ] || { echo "failed to read UUID for $ESP_PART" >&2; exit 1; }
 fi
 
-INSTALL_ROOTFS=/media/kryptos-live/kryptos/rootfs.tar.gz
-[ -r "$INSTALL_ROOTFS" ] || { echo "immutable installer payload unavailable: $INSTALL_ROOTFS" >&2; exit 1; }
-echo "[install] copy immutable ISO rootfs"
-gzip -dc "$INSTALL_ROOTFS" | \
-    tar --xattrs --acls --numeric-owner --warning=no-timestamp -xpf - -C "$MNT"
+INSTALL_ROOTFS=/media/kryptos-live/kryptos/rootfs.tar.zst
+if [ ! -r "$INSTALL_ROOTFS" ]; then
+    INSTALL_ROOTFS=/media/kryptos-live/kryptos/rootfs.tar.gz
+    [ -r "$INSTALL_ROOTFS" ] || { echo "immutable installer payload unavailable: $INSTALL_ROOTFS" >&2; exit 1; }
+    need gzip
+    echo "[install] copy immutable ISO rootfs (gzip fallback)"
+    gzip -dc "$INSTALL_ROOTFS" | \
+        tar --xattrs --acls --numeric-owner --warning=no-timestamp -xpf - -C "$MNT"
+else
+    need zstd
+    echo "[install] copy immutable ISO rootfs"
+    zstd -dc "$INSTALL_ROOTFS" | \
+        tar --xattrs --acls --numeric-owner --warning=no-timestamp -xpf - -C "$MNT"
+fi
 
 # Both GPU vendors ship in the image so the ISO boots anywhere. Trim the one
 # this machine will never load; the drivers themselves stay installed.

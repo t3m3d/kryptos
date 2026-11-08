@@ -95,11 +95,16 @@ Item {
         anchors.verticalCenter: barBg.verticalCenter
         width: ThemeManager.archIconSize
         height: ThemeManager.archIconSize
-        imageSource: Qt.resolvedUrl("../../assets/logos/krypton_logo.png")
-        imageScale: 0.85
         hoverScale: ThemeManager.archIconHoverScale
         pressScale: ThemeManager.archIconPressScale
         onClicked: bar.toggleLauncher()
+
+        KryptonGlyph {
+            anchors.centerIn: parent
+            width: Math.round(Math.min(parent.width, parent.height) * 0.85)
+            height: width
+            glyphColor: archButton.glyphColor
+        }
     }
 
     RowLayout {

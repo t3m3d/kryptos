@@ -21,7 +21,10 @@ class DesktopTests(unittest.TestCase):
         (self.root / 'dri/card0').touch()
         (self.root / 'log').mkdir()
         source = (REPO / 'config/start-hypr').read_text()
-        for before, after in [('/run/user/0', str(self.runtime)), ('/dev/dri', str(self.root / 'dri')), ('/sys/class/drm', str(self.root / 'drm')), ('/var/log', str(self.root / 'log'))]:
+        source = source.replace(
+            'export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin${PATH:+:$PATH}"',
+            f'export PATH="{self.bin}:/usr/bin:/bin"')
+        for before, after in [('/run/user/0', str(self.runtime)), ('/dev/dri', str(self.root / 'dri')), ('/sys/class/drm', str(self.root / 'drm')), ('/var/log', str(self.root / 'log')), ('/usr/lib/libvulkan.so.1', str(self.root / 'libvulkan.so.1'))]:
             source = source.replace(before, after)
         self.launcher = self.root / 'start-hypr'
         self.launcher.write_text(source)
@@ -29,6 +32,8 @@ class DesktopTests(unittest.TestCase):
         self.fake('flock', 'exit "${LOCK_STATUS:-0}"')
         self.env = dict(os.environ, PATH=str(self.bin)+':/usr/bin:/bin', STARTUP_TIMEOUT='1')
         self.env.pop('DBUS_SESSION_BUS_ADDRESS', None)
+        for key in ('AQ_NO_ATOMIC', 'HYPRLAND_NO_RT', 'QT_QUICK_BACKEND', 'QSG_RENDER_LOOP'):
+            self.env.pop(key, None)
 
     def tearDown(self):
         self.temp.cleanup()
@@ -87,6 +92,48 @@ class DesktopTests(unittest.TestCase):
         result = self.launch()
         self.assertEqual(result.returncode, 0)
         self.assertEqual(seen.read_text(), 'unix:path=/fake/bus')
+
+    def test_compositor_does_not_inherit_session_lock(self):
+        self.fake('Hyprland', 'if ( : >&9 ) 2>/dev/null; then exit 9; fi; exit 0')
+        self.assertEqual(self.launch().returncode, 0)
+
+    def test_session_bus_does_not_inherit_session_lock(self):
+        seen = self.root / 'bus-env'
+        self.fake('dbus-daemon', 'if ( : >&9 ) 2>/dev/null; then exit 9; fi; echo "unix:path=/fake/bus"')
+        self.fake('Hyprland', f'printf "%s" "$DBUS_SESSION_BUS_ADDRESS" > "{seen}"; exit 0')
+        self.assertEqual(self.launch().returncode, 0)
+        self.assertEqual(seen.read_text(), 'unix:path=/fake/bus')
+
+    def gpu(self, driver_name):
+        driver = self.root / 'drivers' / driver_name
+        driver.mkdir(parents=True)
+        device = self.root / 'drm/card0/device'
+        device.mkdir(parents=True)
+        (device / 'driver').symlink_to(driver, target_is_directory=True)
+
+    def test_qemu_fallback_uses_compatible_display_profile(self):
+        self.gpu('virtio-pci')
+        config = self.root / 'config/hypr'
+        config.mkdir(parents=True)
+        (config / 'hyprland.conf').write_text('monitor = ,preferred,auto,1\n')
+        self.env['XDG_CONFIG_HOME'] = str(config.parent)
+        seen = self.root / 'renderer-env'
+        self.fake('Hyprland', f'printf "%s|%s|%s|%s\\n%s" "$AQ_NO_ATOMIC" "$HYPRLAND_NO_RT" "$QT_QUICK_BACKEND" "$QSG_RENDER_LOOP" "$*" > "{seen}"; exit 0')
+        self.assertEqual(self.launch().returncode, 0)
+        self.assertIn('1|1|software|basic', seen.read_text())
+        self.assertIn('--config ' + str(self.runtime / 'kryptos-hypr-qemu.conf'), seen.read_text())
+        generated = (self.runtime / 'kryptos-hypr-qemu.conf').read_text()
+        self.assertIn('source = ' + str(config / 'hyprland.conf'), generated)
+        self.assertIn('explicit_sync = 0', generated)
+        self.assertIn('Virtual-1,1440x900@60,auto,1', generated)
+
+    def test_physical_gpu_keeps_normal_rendering(self):
+        self.gpu('amdgpu')
+        seen = self.root / 'renderer-env'
+        self.fake('Hyprland', f'printf "%s|%s|%s|%s" "$AQ_NO_ATOMIC" "$HYPRLAND_NO_RT" "$QT_QUICK_BACKEND" "$*" > "{seen}"; exit 0')
+        self.assertEqual(self.launch().returncode, 0)
+        self.assertEqual(seen.read_text(), '|||--i-am-really-stupid')
+        self.assertFalse((self.runtime / 'kryptos-hypr-qemu.conf').exists())
 
     def test_report_no_overwrite(self):
         report = self.root / 'report.txt'
