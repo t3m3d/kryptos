@@ -1,15 +1,15 @@
 # never commit the build tree, sources, or logs (they live on the Linux host)
 sources/
 *handoff*
-build-logs/
-build-state/
+docs/
 *.log
 *.img
-.DS_Store
 dist/
-.cloud-attachments/
 .freebuff/
-
 sources-cache/
 Start KryptOS.command
 website/kryptos.html
+PROGRESS.md
+KRYPTOS-BRIEF.md
+website/
+kryptoport/ayo
