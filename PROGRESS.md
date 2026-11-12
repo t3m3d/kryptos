@@ -69,23 +69,26 @@ missing pidof utility in the syslog startup script; serial login still passed.
   `compiler/linux_x86/elf_host` is missing/stale — emitted binaries drop the
   first byte of every string. ch23 ships the committed
   `bootstrap/elf_host_linux_x86_64` (+ `optimize_host`) so no self-host runs.
-- [x] Live ISO boots under macOS QEMU (serial login 145s); inside it:
-  `kcc --version` OK, `kcc -r hello.k` prints `kryptos-krypton-ok`.
+- [x] Live ISO boots under macOS QEMU (serial login; 145s on the 2026-11-12
+  01:54 ISO, 89s on the 2026-11-12 07:58 rebuild); `kcc --version` OK;
+  `kcc -r hello.k` prints `kryptos-krypton-ok`.
   Note: `kr version` prints nothing (not a real subcommand); use `kcc --version`.
-- socam and Objective-K: not installed (out of scope this round).
+- socam: not installed (out of scope this round). Objective-K: installed in
+  the 2026-11-12 07:58 rebuild (see follow-up below).
 
 ### 2026-11-12 follow-up: Objective-K on Linux x86_64 (macOS verified too)
 
-- [x] The shipped Linux x86_64 hosts predate Objective-K (June/July 2026). The
+- [x] The shipped Linux x86_64 hosts predated Objective-K (June/July 2026). The
   Pure-Krypton Obj-K runtime now runs on Linux x86_64 (Lima VM) through the
   repo's standard driver: `test_objk_runtime`, `test_objk_witness`,
   `test_objk_syntax`, `test_objk_protocols`, `test_objk_types`,
   `test_objk_lifetime`, `test_objk_weak`, `test_objk_reuse`,
   `test_objk_static_types` all rc=0 (same on macOS arm64). Refreshed seeds
-  committed: `bootstrap/elf_host_linux_x86_64` (PSW `objk+globals`), and
-  `compiler/linux_x86/kcc-x64`. Cha23 copies the ELF host into the image at
-  ISO build time as before — rerun `scripts/64-install-krypton.sh` to pull
-  them in.
+  committed upstream in `krypton`: `bootstrap/elf_host_linux_x86_64` (globals
+  page + bufSet*At; md5 75a0bc0c...) and
+  `compiler/linux_x86/kcc-x64` (Obj-K-capable frontend; md5 6b543b72...).
+  Cha23 copies the ELF host into the image at ISO build time, so the rebuilt
+  ISO ships Obj-K support.
 - [x] Linux ELF backend repaired: pure-Krypton runtime wrote arena headers
   through `bufSetWordAt`/`bufSetDwordAt`/`bufSetQwordAt`, which did not exist
   (emitted `UNSUPPORTED` markers) — class registration silently degraded, so
