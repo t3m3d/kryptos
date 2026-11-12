@@ -107,6 +107,21 @@ missing pidof utility in the syslog startup script; serial login still passed.
   committed hosts (`bootstrap/elf_host_linux_x86_64` = `75a0bc0c...`); the
   shipped toolchain compiles and runs `kcc -r` (`kryptos-krypton-ok`) and
   `tests/macos/test_objk_runtime.k` from the extracted ISO rootfs.
+- [x] ISO rebuild with the SmackUI stdlib included (rebuilt 2026-11-12 via
+  `scripts/64-install-krypton.sh`; `stdlib/smack/*` + `examples/smack_hello.k`
+  staged into the payload tarball, 409 entries, SHA-256 verified, boots to
+  serial login). `scripts/65-test-iso-smackui.sh` boots the ISO, logs in as
+  root and runs `examples/smack_hello.k` in-VM; requires `smack-iso-ok`.
+  Verified PASS: `kcc --version` -> `kcc version 2.4.4`; in-ISO compile of
+  `examples/smack_hello.k` prints `smack-iso-ok`.
+- [x] `scripts/64-install-krypton.sh` now deletes `/mnt/lfs/build-state/krypton.done`
+  before re-entering the chroot — `lib/build.sh step` caches `krypton.done`, and
+  a stale marker silently shipped a Nov-10 /usr/local/krypton (without smack)
+  into the ISO. Removed; rebuilt; smack_hello verified inside the live ISO.
+- [x] SmackUI shipped in the ISO: `k:smack/geometry`, `k:smack/view`,
+  `k:smack/compositor` (pure Krypton, no C helpers) included in the krypton
+  payload; `examples/smack_hello.k` end-to-end demo compiles+runs on Linux
+  x86_64 (`smack-iso-ok`).
 - [ ] Mach-O `@implementation` files exit(16) without running — unexplained;
   milestone 3 verification limited to the Obj-K keyword syntax.
 - [ ] `tests/test_bytes.k` SIGSEGV on Linux at `bytesWriteI32LE` — the

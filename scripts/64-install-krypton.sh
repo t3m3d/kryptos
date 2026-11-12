@@ -54,6 +54,11 @@ limactl shell "$VM" -- sudo -n sh -c 'echo 3 > /proc/sys/vm/drop_caches' || true
 
 # 9p mounts are read-only but readable; run from the repo path so 44-make-iso's
 # relative paths (scripts/live/...) resolve.
+# ch23 (lib/build.sh `step`) caches completion in /mnt/lfs/build-state/krypton.done.
+# Without removing it, the re-install silently no-ops and a stale /usr/local/krypton
+# (without this tree's stdlib changes) ships in the ISO.
+limactl shell "$VM" -- sudo -n rm -f /mnt/lfs/build-state/krypton.done
+
 echo '[krypton-iso] installing inside the chroot (ch23-krypton.sh)'
 limactl shell "$VM" -- sh -c "cd '$VM_REPO' && exec sudo -n env LFS=/mnt/lfs bash '$VM_REPO/scripts/30-enter-chroot.sh' ch23-krypton.sh"
 
