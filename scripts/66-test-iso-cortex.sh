@@ -92,12 +92,12 @@ printf 'kcc --version; echo MARK_KCC_DONE\n' >&9
 wait_for 'kcc version' 60 'kcc --version output'
 wait_for 'MARK_KCC_DONE' 60 'kcc marker'
 
-printf 'ls /usr/local/krypton/examples/cortex_wl.k || echo CORTEX_MISSING\n' >&9
-wait_for 'cortex_wl.k|CORTEX_MISSING' 60 'cortex source check'
-if grep -q 'CORTEX_MISSING' "$LOG"; then echo '[cortex-iso] FAIL: cortex_wl.k missing; rebuild via 64-install with MAC_CORTEX set' >&2; exit 1; fi
+printf 'ls /usr/local/krypton/examples/cortex_wl.k >/dev/null 2>&1; echo MARKLE=$?\n' >&9
+wait_for 'MARKLE=[0-9]' 60 'cortex source check'
+if ! grep -q 'MARKLE=0' "$LOG"; then echo '[cortex-iso] FAIL: /usr/local/krypton/examples/cortex_wl.k missing; rebuild via 64-install with MAC_CORTEX set' >&2; exit 1; fi
 printf 'kcc /usr/local/krypton/examples/cortex_wl.k -o /tmp/cortex; echo MARK_COMPILE_DONE\n' >&9
 # TCG compile of a ~52KB file takes minutes under emulation.
-wait_for 'MARK_COMPILE_DONE' "$TIMEOUT" 'cortex_wl compile'
+wait_for 'elf: wrote /tmp/cortex' "$TIMEOUT" 'cortex_wl compile'
 
 printf 'ls -la /tmp/cortex; WAYLAND_DISPLAY= timeout 15 /tmp/cortex; echo MARK_CORTEX_RC=$?\n' >&9
 wait_for 'connect failed' 60 'headless connect message'
