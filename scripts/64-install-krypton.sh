@@ -39,11 +39,11 @@ tmp=\$(mktemp -d)
 mkdir -p \"\$tmp/krypton\"
 cd '$VM_KRYPTON'
 cp -a bootstrap compiler stdlib headers kr LICENSE examples README.md \"\$tmp/krypton/\"
-if [ -f "'$MAC_CORTEX'/cortex_wl.k" ]; then
-    cp -a "'$MAC_CORTEX'/cortex.k" "'$MAC_CORTEX'/cortex_wl.k" "\$tmp/krypton/examples/"
+if [ -f '$MAC_CORTEX/cortex_wl.k' ]; then
+    cp -a '$MAC_CORTEX/cortex.k' '$MAC_CORTEX/cortex_wl.k' "\$tmp/krypton/examples/"
     echo '[krypton-iso] cortex sources staged into examples/'
 else
-    echo '[krypton-iso] note: cortex checkout not found at '$MAC_CORTEX' - cortex examples skipped; set MAC_CORTEX'
+    echo '[krypton-iso] note: cortex checkout not found - cortex examples skipped; set MAC_CORTEX'
 fi
 # Drop non-Linux, non-x86_64 and fat binaries; keep the ELF x86_64 set.
 cd \"\$tmp/krypton/bootstrap\"
