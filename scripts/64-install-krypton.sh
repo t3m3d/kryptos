@@ -31,7 +31,7 @@ VM_KRYPTON="$MAC_KRYPTON"
 VM_REPO="$REPO"
 
 STAGE_INPUTS="${STAGE_INPUTS:-/home/t3m3d.guest/staging-inputs}"
-limactl shell "$VM" -- sudo -n mkdir -p "$STAGE_INPUTS"
+limactl shell "$VM" -- bash -lc 'mkdir -p /home/t3m3d.guest/staging-inputs'
 if [ -n "${MAC_CORTEX:-}" ] && [ -f "$MAC_CORTEX/cortex_wl.k" ]; then
     limactl copy "$MAC_CORTEX/cortex_wl.k" "$VM:$STAGE_INPUTS/cortex_wl.k" >/dev/null
     limactl copy "$MAC_CORTEX/cortex.k" "$VM:$STAGE_INPUTS/cortex.k" >/dev/null
