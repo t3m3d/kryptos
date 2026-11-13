@@ -30,6 +30,16 @@ limactl list --format '{{.Name}} {{.Status}}' | grep -q "^$VM Running" \
 VM_KRYPTON="$MAC_KRYPTON"
 VM_REPO="$REPO"
 
+STAGE_INPUTS="${STAGE_INPUTS:-/home/t3m3d.guest/staging-inputs}"
+limactl shell "$VM" -- sudo -n mkdir -p "$STAGE_INPUTS"
+if [ -n "${MAC_CORTEX:-}" ] && [ -f "$MAC_CORTEX/cortex_wl.k" ]; then
+    limactl copy "$MAC_CORTEX/cortex_wl.k" "$VM:$STAGE_INPUTS/cortex_wl.k" >/dev/null
+    limactl copy "$MAC_CORTEX/cortex.k" "$VM:$STAGE_INPUTS/cortex.k" >/dev/null
+    echo '[krypton-iso] cortex examples staged via limactl copy (fresh)'
+fi
+if [ -f "$MAC_KRYPTON/examples/choc_linux_demo.k" ]; then
+    limactl copy "$MAC_KRYPTON/examples/choc_linux_demo.k" "$VM:$STAGE_INPUTS/choc_linux_demo.k" >/dev/null
+fi
 echo '[krypton-iso] staging source tarball inside the VM'
 limactl shell "$VM" -- sudo -n bash -c "
 set -euo pipefail
@@ -39,11 +49,9 @@ tmp=\$(mktemp -d)
 mkdir -p \"\$tmp/krypton\"
 cd '$VM_KRYPTON'
 cp -a bootstrap compiler stdlib headers kr LICENSE examples README.md \"\$tmp/krypton/\"
-if [ -f '$MAC_CORTEX/cortex_wl.k' ]; then
-    cp -a '$MAC_CORTEX/cortex.k' '$MAC_CORTEX/cortex_wl.k' "\$tmp/krypton/examples/"
-    echo '[krypton-iso] cortex sources staged into examples/'
-else
-    echo '[krypton-iso] note: cortex checkout not found - cortex examples skipped; set MAC_CORTEX'
+mkdir -p "\$tmp/krypton/examples"
+if [ -d /home/t3m3d.guest/staging-inputs ]; then
+    cp -a /home/t3m3d.guest/staging-inputs/*.k "\$tmp/krypton/examples/" 2>/dev/null || true
 fi
 # Drop non-Linux, non-x86_64 and fat binaries; keep the ELF x86_64 set.
 cd \"\$tmp/krypton/bootstrap\"
