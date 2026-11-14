@@ -8,7 +8,7 @@ set -euo pipefail
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 VM="${VM:-krypton}"
 MAC_KRYPTON="${MAC_KRYPTON:-$HOME/Documents/GitHub/krypton}"
-MAC_CORTEX="${MAC_CORTEX:-$HOME/Documents/GitHub/cortex}"  # Linux Wayland file manager
+MAC_CORTEX="${MAC_CORTEX:-$HOME/Documents/GitHub/cortex}"  # Linux Wayland file manager (staging only, optional)
 if [ ! -f "$MAC_CORTEX/cortex_wl.k" ] && [ -f "$HOME/Documents/GitHub/cortex-linux/cortex_wl.k" ]; then
     MAC_CORTEX="$HOME/Documents/GitHub/cortex-linux"
 fi
@@ -52,6 +52,13 @@ cp -a bootstrap compiler stdlib headers kr LICENSE examples README.md \"\$tmp/kr
 mkdir -p "\$tmp/krypton/examples"
 if [ -d /home/t3m3d.guest/staging-inputs ]; then
     cp -a /home/t3m3d.guest/staging-inputs/*.k "\$tmp/krypton/examples/" 2>/dev/null || true
+fi
+if [ -f "'$MAC_CORTEX'/cortex_wl.k" ]; then
+    cp -a "'$MAC_CORTEX'/cortex.k" "'$MAC_CORTEX'/cortex_wl.k" "\$tmp/krypton/examples/"
+    echo '[krypton-iso] cortex sources staged into examples/'
+else
+    echo '[krypton-iso] note: cortex checkout not found at '$MAC_CORTEX' - cortex examples skipped; set MAC_CORTEX'
+
 fi
 # Drop non-Linux, non-x86_64 and fat binaries; keep the ELF x86_64 set.
 cd \"\$tmp/krypton/bootstrap\"
